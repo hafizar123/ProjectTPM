@@ -1,8 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:hive/hive.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'home_page.dart'; 
+import 'activity_page.dart';
+import 'settings_page.dart'; // ZHANGG! Biar bisa pindah alam ke Setting pak
+import 'login_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({Key? key}) : super(key: key);
@@ -14,8 +17,11 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   String? _imagePath;
   String _username = "Tamu";
+  String _email = "tamu@bersih.in"; // REVISI: Siapin variabel email pak
+  bool _isGuest = true;
   
-  // Palette Tosca Premium
+  int _selectedIndex = 3; 
+  
   final Color toscaDark = const Color(0xFF025955);
   final Color toscaMedium = const Color(0xFF00909E);
   final Color toscaLight = const Color(0xFF48C9B0);
@@ -26,178 +32,241 @@ class _ProfilePageState extends State<ProfilePage> {
     _loadProfileData();
   }
 
-  // Load data dari Hive pas halaman dibuka
-  void _loadProfileData() {
-    var box = Hive.box('userBox');
+  // REVISI: Fungsi ini sekarang narik Email jg buat gantiin tulisan "Mahasiswa"
+  Future<void> _loadProfileData() async {
+    final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _username = box.get('active_user') ?? "Simon Pulung";
-      _imagePath = box.get('profile_image'); // Ambil foto kalo udeh ada
+      _username = prefs.getString('saved_username') ?? "Tamu";
+      _email = prefs.getString('saved_email') ?? "Login buat akses penuh pak!";
+      _imagePath = prefs.getString('profile_image');
+      _isGuest = prefs.getBool('is_logged_in') == null || prefs.getBool('is_logged_in') == false;
     });
   }
 
-  // Fungsi milih foto (Kamera / Galeri)
-  Future<void> _pickImage(ImageSource source) async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: source);
-
-    if (pickedFile != null) {
-      setState(() {
-        _imagePath = pickedFile.path;
-      });
-      // ZHANGG! Langsung simpen path gambarnye ke Hive
-      var box = Hive.box('userBox');
-      box.put('profile_image', pickedFile.path);
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Foto profil lu berhasil di-update pak!', style: GoogleFonts.outfit()), 
-          backgroundColor: toscaMedium
-        ),
+  void _onItemTapped(int index) {
+    if (index == 0) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const HomePage()),
+        (route) => false,
       );
+    } else if (index == 1) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const ActivityPage()),
+      );
+    } else {
+      setState(() {
+        _selectedIndex = index;
+      });
     }
-  }
-
-  // Pop-up milih sumber gambar
-  void _showPicker(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (BuildContext bc) {
-        return SafeArea(
-          child: Wrap(
-            children: <Widget>[
-              ListTile(
-                leading: Icon(Icons.photo_library, color: toscaDark),
-                title: Text('Ambil dari Galeri', style: GoogleFonts.outfit()),
-                onTap: () {
-                  _pickImage(ImageSource.gallery);
-                  Navigator.of(context).pop();
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.photo_camera, color: toscaDark),
-                title: Text('Jepret pake Kamera', style: GoogleFonts.outfit()),
-                onTap: () {
-                  _pickImage(ImageSource.camera);
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
-          ),
-        );
-      }
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: toscaDark,
         elevation: 0,
-        title: Text('Profil Saya', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+        title: Text('Profil Saya', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white)),
         centerTitle: true,
+        automaticallyImplyLeading: false, 
       ),
       body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Header Profile dengan Gradient Tosca
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.only(bottom: 40, top: 20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [toscaDark, toscaMedium.withOpacity(0.8)],
-                ),
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(40),
-                  bottomRight: Radius.circular(40),
-                )
-              ),
-              child: Column(
-                children: [
-                  // Avatar Area (Bisa diklik buat ganti foto)
-                  Stack(
-                    alignment: Alignment.bottomRight,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 15, offset: const Offset(0, 8))
-                          ]
-                        ),
-                        child: CircleAvatar(
-                          radius: 60,
-                          backgroundColor: toscaLight.withOpacity(0.2),
-                          // Nampilin foto kalo ada, kalo kaga ada pake icon default
-                          backgroundImage: _imagePath != null ? FileImage(File(_imagePath!)) : null,
-                          child: _imagePath == null 
-                              ? Icon(Icons.person_outline, size: 60, color: toscaDark)
-                              : null,
-                        ),
-                      ),
-                      // Ikon Kamera kecil
-                      GestureDetector(
-                        onTap: () => _showPicker(context),
-                        child: Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8)]
-                          ),
-                          child: Icon(Icons.camera_alt, color: toscaDark, size: 20),
-                        ),
-                      )
-                    ],
-                  ),
-                  const SizedBox(height: 15),
-                  Text(
-                    _username,
-                    style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
-                  Text(
-                    'Mahasiswa UPNYK ALIAS Bos Bersih.In',
-                    style: GoogleFonts.outfit(fontSize: 14, color: Colors.white70),
-                  ),
-                ],
-              ),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Colors.white, toscaLight.withOpacity(0.04)],
             ),
-            
-            const SizedBox(height: 30),
-            
-            // Menu-menu dummy biar kaga kosong amat
-            _buildMenuOption(Icons.settings_outlined, 'Pengaturan Akun'),
-            _buildMenuOption(Icons.history_outlined, 'Riwayat Pesanan'),
-            _buildMenuOption(Icons.help_outline, 'Bantuan & Dukungan'),
+          ),
+          constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.height),
+          child: Column(
+            children: [
+              // HEADER PROFIL (REVISI: Foto Polos & Email Aktif)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.only(bottom: 40, top: 20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [toscaDark, toscaMedium.withOpacity(0.8)],
+                  ),
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(40),
+                    bottomRight: Radius.circular(40),
+                  )
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 15, offset: const Offset(0, 8))
+                        ]
+                      ),
+                      child: CircleAvatar(
+                        radius: 60,
+                        backgroundColor: toscaLight.withOpacity(0.2),
+                        backgroundImage: _imagePath != null ? FileImage(File(_imagePath!)) : null,
+                        child: _imagePath == null 
+                            ? Icon(Icons.person_outline, size: 60, color: toscaDark)
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+                    Text(
+                      _username,
+                      style: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    const SizedBox(height: 5),
+                    // REVISI: TULISAN MAHASISWA UDEH GANTI JADI EMAIL USER PAK!
+                    Text(
+                      _email,
+                      style: GoogleFonts.outfit(fontSize: 14, color: Colors.white70, letterSpacing: 0.5),
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 30),
+              
+              // MENU OPSIONAL (REVISI: OnTap Pengaturan nyambung ke SettingsPage)
+              _buildMenuOption(
+                Icons.settings_outlined, 
+                'Pengaturan Akun', 
+                isDisabled: _isGuest,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const SettingsPage()),
+                  ).then((value) => _loadProfileData()); // Refresh data pas balik
+                }
+              ),
+              _buildMenuOption(
+                Icons.history_outlined, 
+                'Riwayat Pesanan', 
+                isDisabled: _isGuest,
+                onTap: () {}
+              ),
+              _buildMenuOption(
+                Icons.help_outline, 
+                'Bantuan & Dukungan', 
+                isDisabled: false,
+                onTap: () {}
+              ),
+
+              const SizedBox(height: 20),
+
+              // TOMBOL LOGOUT / LOGIN
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 55,
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      if (_isGuest) {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginPage()));
+                      } else {
+                        final prefs = await SharedPreferences.getInstance();
+                        await prefs.clear();
+                        if (!mounted) return;
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (context) => const LoginPage()),
+                          (route) => false,
+                        );
+                      }
+                    },
+                    icon: Icon(_isGuest ? Icons.login_rounded : Icons.logout_rounded, color: Colors.redAccent),
+                    label: Text(_isGuest ? 'MASUK KE AKUN' : 'KELUAR APLIKASI', 
+                      style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.redAccent)),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.redAccent),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 100), // Biar kaga kena Bottom Nav
+            ],
+          ),
+        ),
+      ),
+      
+      // FLOATING ACTION BUTTON
+      floatingActionButton: SizedBox(
+        width: 65, height: 65,
+        child: FloatingActionButton(
+          onPressed: () {},
+          backgroundColor: Colors.transparent,
+          elevation: 12,
+          child: Container(
+            width: 62, height: 62,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(colors: [toscaLight, toscaDark]),
+              boxShadow: [
+                BoxShadow(color: toscaDark.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 5))
+              ]
+            ),
+            child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 28),
+          ),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+
+      // BOTTOM NAV
+      bottomNavigationBar: BottomAppBar(
+        shape: const CircularNotchedRectangle(),
+        notchMargin: 10.0,
+        child: BottomNavigationBar(
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          selectedItemColor: toscaDark,
+          unselectedItemColor: Colors.grey.shade400,
+          currentIndex: _selectedIndex,
+          onTap: _onItemTapped,
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.grid_view_rounded), label: 'Beranda'),
+            BottomNavigationBarItem(icon: Icon(Icons.analytics_outlined), label: 'Aktivitas'),
+            BottomNavigationBarItem(icon: Icon(Icons.rate_review_outlined), label: 'Kesan Pesan'),
+            BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profil'),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildMenuOption(IconData icon, String title) {
+  Widget _buildMenuOption(IconData icon, String title, {bool isDisabled = false, VoidCallback? onTap}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 8),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
+          color: isDisabled ? Colors.grey.shade50 : Colors.white,
+          borderRadius: BorderRadius.circular(18),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 5))
+            if (!isDisabled)
+              BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 5))
           ]
         ),
         child: ListTile(
-          leading: Icon(icon, color: toscaMedium),
-          title: Text(title, style: GoogleFonts.outfit(fontWeight: FontWeight.w500)),
-          trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-          onTap: () {},
+          leading: Icon(icon, color: isDisabled ? Colors.grey.shade400 : toscaMedium),
+          title: Text(title, style: GoogleFonts.outfit(
+            fontWeight: FontWeight.w600,
+            color: isDisabled ? Colors.grey.shade400 : Colors.black87
+          )),
+          trailing: Icon(Icons.arrow_forward_ios, size: 14, color: isDisabled ? Colors.grey.shade300 : Colors.grey),
+          onTap: isDisabled ? null : onTap,
         ),
       ),
     );

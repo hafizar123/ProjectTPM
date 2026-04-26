@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'login_page.dart';
 import 'profile_page.dart';
+import 'activity_page.dart'; 
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomePage extends StatefulWidget {
   final String? username;
@@ -13,12 +15,13 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
-  
-  // LANGSUNG DIINISIALISASI DI SINI BIAR KAGA ERROR JING!
   final ScrollController _scrollController = ScrollController();
   bool _isCollapsed = false;
 
-  // Palette Tosca Premium
+  // Variabel buat ngatur Tamu vs User
+  String _username = 'Tamu';
+  bool _isGuest = true;
+
   final Color toscaDark = const Color(0xFF025955);
   final Color toscaMedium = const Color(0xFF00909E);
   final Color toscaLight = const Color(0xFF48C9B0);
@@ -26,21 +29,30 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    _bukaBrankas();
     
-    // Logic buat ngebaca scroll lu pak
     _scrollController.addListener(() {
       if (_scrollController.hasClients) {
         if (_scrollController.offset > 110 && !_isCollapsed) {
-          setState(() {
-            _isCollapsed = true;
-          });
+          setState(() => _isCollapsed = true);
         } else if (_scrollController.offset <= 110 && _isCollapsed) {
-          setState(() {
-            _isCollapsed = false;
-          });
+          setState(() => _isCollapsed = false);
         }
       }
     });
+  }
+
+  Future<void> _bukaBrankas() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedName = prefs.getString('saved_username');
+    final isLoggedIn = prefs.getBool('is_logged_in') ?? false;
+
+    if (isLoggedIn && savedName != null) {
+      setState(() {
+        _username = savedName;
+        _isGuest = false;
+      });
+    }
   }
 
   @override
@@ -50,19 +62,27 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-
-    if (index == 3) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const ProfilePage()),
+    if (index == 1) {
+      Navigator.pushReplacement(
+        context, 
+        MaterialPageRoute(builder: (context) => const ActivityPage())
       );
+    } else if (index == 3) {
+      Navigator.pushReplacement(
+        context, 
+        MaterialPageRoute(builder: (context) => const ProfilePage())
+      );
+    } else {
+      setState(() {
+        _selectedIndex = index;
+      });
     }
   }
 
-  void _handleLogout() {
+  Future<void> _handleLogout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    if (!mounted) return;
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => const HomePage()), 
@@ -72,10 +92,8 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    bool isLoggedIn = widget.username != null && widget.username != "Tamu";
-    String displayUsername = widget.username ?? "Tamu";
-
     return Scaffold(
+      extendBody: true,
       backgroundColor: Colors.white,
       body: CustomScrollView(
         controller: _scrollController, 
@@ -87,8 +105,6 @@ class _HomePageState extends State<HomePage> {
             elevation: 0,
             stretch: true,
             backgroundColor: toscaDark,
-            
-            // ACTIONS: TOMBOL YANG MUNCUL DI NAVBAR ATAS PAS DI-SCROLL
             actions: [
               AnimatedOpacity(
                 duration: const Duration(milliseconds: 200),
@@ -97,7 +113,7 @@ class _HomePageState extends State<HomePage> {
                   ignoring: !_isCollapsed, 
                   child: Padding(
                     padding: const EdgeInsets.only(right: 20),
-                    child: !isLoggedIn 
+                    child: _isGuest 
                       ? Center(
                           child: GestureDetector(
                             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginPage())),
@@ -123,13 +139,10 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ],
-
             flexibleSpace: LayoutBuilder(
               builder: (context, constraints) {
                 var top = constraints.biggest.height;
-                // Makin di-scroll, opasitasnya makin abis alias ilang
                 double opacity = ((top - kToolbarHeight) / (200.0 - kToolbarHeight)).clamp(0.0, 1.0);
-                
                 return FlexibleSpaceBar(
                   stretchModes: const [StretchMode.zoomBackground, StretchMode.blurBackground],
                   background: Container(
@@ -142,7 +155,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                     child: Opacity(
-                      opacity: opacity, // INI YANG BIKIN KONTEN AWAL ILANG PAS DI-SCROLL
+                      opacity: opacity, 
                       child: Padding(
                         padding: const EdgeInsets.only(left: 20, top: 70, right: 20),
                         child: Column(
@@ -150,15 +163,10 @@ class _HomePageState extends State<HomePage> {
                           children: [
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                Text(
-                                  'Halo, Selamat Pagi',
-                                  style: GoogleFonts.outfit(color: Colors.white.withOpacity(0.9), fontSize: 14),
-                                ),
-                                // TOMBOL AWAL YANG ADA DI BAWAH PAS BELOM DI-SCROLL
-                                !isLoggedIn 
-                                ? GestureDetector(
+                                Text('Halo, Selamat Pagi', style: GoogleFonts.outfit(color: Colors.white.withOpacity(0.9), fontSize: 14)),
+                                if (_isGuest)
+                                  GestureDetector(
                                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginPage())),
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -167,45 +175,30 @@ class _HomePageState extends State<HomePage> {
                                         borderRadius: BorderRadius.circular(12),
                                         border: Border.all(color: Colors.white.withOpacity(0.2)),
                                       ),
-                                      child: Text(
-                                        'Login / Register',
-                                        style: GoogleFonts.outfit(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                                      ),
+                                      child: Text('Login / Register', style: GoogleFonts.outfit(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                                     ),
                                   )
-                                : IconButton(
-                                    onPressed: _handleLogout,
-                                    icon: const Icon(Icons.logout_rounded, color: Colors.white, size: 22),
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
-                                  ),
+                                else
+                                  IconButton(onPressed: _handleLogout, icon: const Icon(Icons.logout_rounded, color: Colors.white, size: 22)),
                               ],
                             ),
                             const SizedBox(height: 5),
-                            Text(
-                              displayUsername,
-                              style: GoogleFonts.outfit(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: -0.5),
-                            ),
+                            Text(_username, style: GoogleFonts.outfit(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
                           ],
                         ),
                       ),
                     ),
                   ),
                   centerTitle: false,
-                  // NAMA KECIL MUNCUL DI NAVBAR PAS UDAH DI-SCROLL
                   title: AnimatedOpacity(
                     duration: const Duration(milliseconds: 200),
                     opacity: _isCollapsed ? 1.0 : 0.0,
-                    child: Text(
-                      displayUsername,
-                      style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-                    ),
+                    child: Text(_username, style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
                   ),
                 );
               }
             ),
           ),
-
           SliverToBoxAdapter(
             child: Container(
               decoration: BoxDecoration(
@@ -221,19 +214,28 @@ class _HomePageState extends State<HomePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 20),
+                    // ZHANGG! Banner Terbatas buat Tamu
+                    if (_isGuest)
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 25),
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(color: Colors.amber.shade50, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.amber.shade200)),
+                        child: Row(
+                          children: [
+                            Icon(Icons.lock_person_rounded, color: Colors.amber.shade800),
+                            const SizedBox(width: 15),
+                            Expanded(child: Text('Akses terbatas pak! Login biar rumah lu bisa makin kinclong.', style: GoogleFonts.outfit(fontSize: 13, color: Colors.amber.shade900))),
+                          ],
+                        ),
+                      ),
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(22),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [toscaMedium, toscaLight],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        gradient: LinearGradient(colors: [toscaMedium, toscaLight], begin: Alignment.topLeft, end: Alignment.bottomRight),
                         borderRadius: BorderRadius.circular(28),
-                        boxShadow: [
-                          BoxShadow(color: toscaMedium.withOpacity(0.2), blurRadius: 20, offset: const Offset(0, 10))
-                        ]
+                        boxShadow: [BoxShadow(color: toscaMedium.withOpacity(0.2), blurRadius: 20, offset: const Offset(0, 10))]
                       ),
                       child: Row(
                         children: [
@@ -251,11 +253,9 @@ class _HomePageState extends State<HomePage> {
                         ],
                       ),
                     ),
-
                     const SizedBox(height: 35),
                     Text('Layanan Kami', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: toscaDark)),
                     const SizedBox(height: 18),
-                    
                     GridView.count(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
@@ -271,27 +271,10 @@ class _HomePageState extends State<HomePage> {
                         _buildServiceItem(Icons.home_outlined, 'Deep\nClean'),
                         _buildServiceItem(Icons.spa_outlined, 'Pijat'),
                         _buildServiceItem(Icons.ac_unit_outlined, 'Service AC'),
-                        _buildServiceItem(Icons.chair_outlined, 'Cuci Sofa'),
+                        _buildServiceItem(Icons.chair_outlined, 'Cuci Sofa'), // ZHANGG! Udeh gue bersihin komennye pak!
                       ],
                     ),
-
-                    const SizedBox(height: 35),
-                    Text('Tips & Informasi', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: toscaDark)),
-                    const SizedBox(height: 15),
-
-                    SizedBox(
-                      height: 160,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        physics: const BouncingScrollPhysics(),
-                        children: [
-                          _buildInfoCard('AC Lebih Dingin', 'Cuci rutin AC lu biar kaga meledak Mon tagihan listriknya.', Icons.ac_unit),
-                          _buildInfoCard('Bebas Tungau', 'Vakum kasur itu wajib biar kaga gatel-gatel.', Icons.bed),
-                          _buildInfoCard('Hemat Waktu', 'Pake jasa Bersih.In biar lu fokus ngoding aje.', Icons.timer_outlined),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 120), 
+                    const SizedBox(height: 160), 
                   ],
                 ),
               ),
@@ -299,25 +282,20 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        backgroundColor: Colors.transparent,
-        elevation: 12,
-        child: Container(
-          width: 62, height: 62,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(colors: [toscaLight, toscaDark]),
-            boxShadow: [
-              BoxShadow(color: toscaDark.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 5))
-            ]
+      floatingActionButton: SizedBox(
+        width: 65, height: 65,
+        child: FloatingActionButton(
+          onPressed: () {},
+          backgroundColor: Colors.transparent,
+          elevation: 12,
+          child: Container(
+            width: 62, height: 62,
+            decoration: BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: [toscaLight, toscaDark])),
+            child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 28),
           ),
-          child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 28),
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-
       bottomNavigationBar: BottomAppBar(
         shape: const CircularNotchedRectangle(),
         notchMargin: 10.0,
@@ -345,45 +323,12 @@ class _HomePageState extends State<HomePage> {
       children: [
         Container(
           padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(color: toscaMedium.withOpacity(0.08), blurRadius: 15, offset: const Offset(0, 8))
-            ],
-            border: Border.all(color: toscaLight.withOpacity(0.05)),
-          ),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: toscaMedium.withOpacity(0.08), blurRadius: 15, offset: const Offset(0, 8))]),
           child: Icon(icon, size: 28, color: toscaMedium),
         ),
         const SizedBox(height: 10),
         Text(title, textAlign: TextAlign.center, style: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.black87)),
       ],
-    );
-  }
-
-  Widget _buildInfoCard(String title, String desc, IconData icon) {
-    return Container(
-      width: 240,
-      margin: const EdgeInsets.only(right: 18),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15, offset: const Offset(0, 8))
-        ],
-        border: Border.all(color: toscaMedium.withOpacity(0.05)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: toscaMedium, size: 28),
-          const SizedBox(height: 12),
-          Text(title, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14, color: toscaDark)),
-          const SizedBox(height: 4),
-          Text(desc, style: GoogleFonts.outfit(fontSize: 11, color: Colors.grey.shade600), maxLines: 2),
-        ],
-      ),
     );
   }
 }

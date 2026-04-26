@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:hive/hive.dart';
-import 'package:local_auth/local_auth.dart';
-import 'home_page.dart';
+// 1. ZHANGG! Import abang kurir lu di mari
+import '../services/auth_service.dart'; 
+import 'home_page.dart'; 
 import 'register_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -13,73 +14,57 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final LocalAuthentication auth = LocalAuthentication();
   
-  // State buat toggle mata
   bool _isPasswordHidden = true;
-  
-  // Palette Hijau Tosca Premium
+  bool _isLoading = false;
+
   final Color toscaDark = const Color(0xFF025955);
   final Color toscaMedium = const Color(0xFF00909E);
-  final Color toscaLight = const Color(0xFF48C9B0);
 
-  // Fungsi Login dengan Enkripsi Sederhana & Session
-  void _handleLogin() {
-    var box = Hive.box('userBox');
-    String? savedUser = box.get('saved_username');
-    String? savedPass = box.get('saved_password');
-    
-    // Enkripsi salt sederhana
-    String inputEncrypted = "ENCRYPTED_" + _passwordController.text + "_bersihin_secret";
+  // 2. LOGIC LOGIN PAKE AUTH SERVICE YANG UDEH LU BIKIN
+  void _handleLogin() async {
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      _showSnackBar('Isi dulu email sama passwordnye Mon!', Colors.redAccent);
+      return;
+    }
 
-    if (_usernameController.text == savedUser && inputEncrypted == savedPass) {
-      box.put('isLoggedIn', true);
-      box.put('active_user', _usernameController.text);
+    setState(() => _isLoading = true);
 
-      Navigator.pushAndRemoveUntil(
+    // Manggil fungsi login dari AuthService
+    final result = await AuthService().login(
+      _emailController.text,
+      _passwordController.text,
+    );
+
+    setState(() => _isLoading = false);
+
+    if (result['statusCode'] == 200) {
+      final username = result['body']['user']['username'];
+      
+      // ZHANGG! Simpen nama user ke brankas lokal pak!
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('saved_username', username);
+      await prefs.setString('saved_email', _emailController.text);
+      await prefs.setBool('is_logged_in', true);
+
+      _showSnackBar('BHAP! Berhasil Masuk, Halo $username!', toscaMedium);
+      
+      Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => HomePage(username: _usernameController.text)),
-        (route) => false,
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Nama pengguna atau kata sandi lu salah, Mon!', style: GoogleFonts.outfit()),
-          backgroundColor: Colors.redAccent,
-        ),
+        MaterialPageRoute(builder: (context) => const HomePage()),
       );
     }
   }
 
-  // Fungsi Login Biometrik
-  Future<void> _handleBiometric() async {
-    try {
-      bool canCheckBiometrics = await auth.canCheckBiometrics;
-      if (canCheckBiometrics) {
-        bool authenticated = await auth.authenticate(
-          localizedReason: 'Silakan pindai sidik jari Anda untuk masuk ke Bersih.In',
-          options: const AuthenticationOptions(
-            stickyAuth: true,
-            biometricOnly: true,
-          ),
-        );
-
-        if (authenticated) {
-          var box = Hive.box('userBox');
-          String? savedUser = box.get('saved_username') ?? "Simon Pulung";
-          
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => HomePage(username: savedUser)),
-            (route) => false,
-          );
-        }
-      }
-    } catch (e) {
-      debugPrint("Error Biometrik: $e");
-    }
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: GoogleFonts.outfit()),
+        backgroundColor: color,
+      ),
+    );
   }
 
   @override
@@ -88,7 +73,7 @@ class _LoginPageState extends State<LoginPage> {
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
         child: Container(
-          height: MediaQuery.of(context).size.height,
+          constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.height),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
@@ -102,67 +87,57 @@ class _LoginPageState extends State<LoginPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(22),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white.withOpacity(0.2)),
-                  ),
-                  child: const Icon(Icons.cleaning_services_rounded, color: Colors.white, size: 55),
-                ),
-                const SizedBox(height: 25),
+                const SizedBox(height: 80),
+                const Icon(Icons.cleaning_services_rounded, size: 80, color: Colors.white),
+                const SizedBox(height: 20),
                 Text(
-                  'Bersih.In',
-                  style: GoogleFonts.outfit(
-                    fontSize: 34,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 1.5,
-                  ),
+                  'Selamat Datang',
+                  style: GoogleFonts.outfit(fontSize: 34, fontWeight: FontWeight.bold, color: Colors.white),
                 ),
-                const SizedBox(height: 50),
+                const SizedBox(height: 10),
+                Text(
+                  'Masuk ke akun Bersih.In lu sekarang',
+                  style: GoogleFonts.outfit(color: Colors.white70, fontSize: 14),
+                ),
+                const SizedBox(height: 60),
                 
-                // Input Username
+                // Form Inputan Email
                 _buildTextField(
-                  controller: _usernameController,
-                  hint: 'Nama Pengguna',
-                  icon: Icons.person_outline,
-                  isPassword: false,
+                  controller: _emailController, 
+                  hint: 'Email Aktif', 
+                  icon: Icons.email_outlined, 
+                  isPassword: false, 
                   isObscure: false,
                 ),
                 const SizedBox(height: 18),
                 
-                // Input Password dengan fitur Mata
+                // Form Inputan Password
                 _buildTextField(
-                  controller: _passwordController,
-                  hint: 'Kata Sandi',
-                  icon: Icons.lock_outline,
-                  isPassword: true,
+                  controller: _passwordController, 
+                  hint: 'Kata Sandi', 
+                  icon: Icons.lock_outline, 
+                  isPassword: true, 
                   isObscure: _isPasswordHidden,
                   onToggleVisibility: () {
-                    setState(() {
-                      _isPasswordHidden = !_isPasswordHidden;
-                    });
+                    setState(() => _isPasswordHidden = !_isPasswordHidden);
                   }
                 ),
                 
-                const SizedBox(height: 30),
+                const SizedBox(height: 40),
                 
                 SizedBox(
                   width: double.infinity,
                   height: 55,
                   child: ElevatedButton(
-                    onPressed: _handleLogin,
+                    onPressed: _isLoading ? null : _handleLogin,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: toscaDark,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                       elevation: 8,
                     ),
-                    child: Text(
-                      'MASUK',
-                      style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white),
-                    ),
+                    child: _isLoading 
+                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : Text('MASUK SEKARANG', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white)),
                   ),
                 ),
                 
@@ -170,40 +145,17 @@ class _LoginPageState extends State<LoginPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('Belum memiliki akun? ', style: GoogleFonts.outfit(color: Colors.grey.shade600, fontSize: 13)),
+                    Text('Belum punya akun? ', style: GoogleFonts.outfit(color: Colors.grey.shade600, fontSize: 13)),
                     GestureDetector(
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const RegisterPage()),
-                        );
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterPage()));
                       },
                       child: Text(
-                        'Daftar Sekarang',
+                        'Daftar di sini',
                         style: GoogleFonts.outfit(color: toscaDark, fontWeight: FontWeight.bold, fontSize: 13),
                       ),
                     ),
                   ],
-                ),
-                
-                const SizedBox(height: 35),
-                Text('Atau masuk menggunakan Biometrik', style: GoogleFonts.outfit(color: Colors.grey.shade600, fontSize: 13)),
-                const SizedBox(height: 20),
-                
-                GestureDetector(
-                  onTap: _handleBiometric,
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(color: toscaMedium.withOpacity(0.15), blurRadius: 20, offset: const Offset(0, 10))
-                      ],
-                      border: Border.all(color: toscaLight.withOpacity(0.2)),
-                    ),
-                    child: Icon(Icons.fingerprint_rounded, color: toscaDark, size: 42),
-                  ),
                 ),
               ],
             ),
@@ -213,7 +165,6 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  // Widget TextField udeh support ikon mata
   Widget _buildTextField({
     required TextEditingController controller, 
     required String hint, 
@@ -226,13 +177,12 @@ class _LoginPageState extends State<LoginPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15, offset: const Offset(0, 8))
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15, offset: const Offset(0, 8))],
       ),
       child: TextField(
         controller: controller,
         obscureText: isObscure,
+        keyboardType: hint.contains('Email') ? TextInputType.emailAddress : TextInputType.text,
         style: GoogleFonts.outfit(fontSize: 15, color: toscaDark),
         decoration: InputDecoration(
           hintText: hint,
@@ -240,11 +190,7 @@ class _LoginPageState extends State<LoginPage> {
           prefixIcon: Icon(icon, color: toscaMedium, size: 22),
           suffixIcon: isPassword 
               ? IconButton(
-                  icon: Icon(
-                    isObscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                    color: Colors.grey.shade400,
-                    size: 22,
-                  ),
+                  icon: Icon(isObscure ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: Colors.grey.shade400, size: 22),
                   onPressed: onToggleVisibility,
                 ) 
               : null,
