@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'home_page.dart';
-import 'profile_page.dart';
+
+// ZHANGG! Pastiin file custom_navbar lu ke-import ye pak
+import 'custom_navbar.dart';
 
 class ActivityPage extends StatefulWidget {
   const ActivityPage({Key? key}) : super(key: key);
@@ -11,26 +12,13 @@ class ActivityPage extends StatefulWidget {
 }
 
 class _ActivityPageState extends State<ActivityPage> {
-  final int _selectedIndex = 1;
-
+  // Variabel warna tetep kita pake buat UI
   final Color toscaDark = const Color(0xFF025955);
   final Color toscaMedium = const Color(0xFF00909E);
   final Color toscaLight = const Color(0xFF48C9B0);
 
-  void _onItemTapped(int index) {
-    if (index == 0) {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const HomePage()),
-        (route) => false,
-      );
-    } else if (index == 3) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const ProfilePage()),
-      );
-    }
-  }
+  // FUNGSI _onItemTapped UDEH GUE BUANG KE LAUT MON!
+  // Karena udeh di-handle full sama custom_navbar.dart
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +29,7 @@ class _ActivityPageState extends State<ActivityPage> {
         backgroundColor: Colors.white,
         
         appBar: AppBar(
-          backgroundColor: toscaDark, // "Aktivitas" yang atas tetep ijo gelap
+          backgroundColor: toscaDark, 
           elevation: 0,
           toolbarHeight: 70,
           titleSpacing: 25, 
@@ -57,15 +45,14 @@ class _ActivityPageState extends State<ActivityPage> {
           centerTitle: false,
           automaticallyImplyLeading: false, 
           
-          // ZHANGG! Ini dia tab lu yang backgroundnya udeh gue bedain
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(55.0),
             child: Container(
-              color: Colors.white, // Background tab dibedain jadi putih estetik
+              color: Colors.white, 
               child: TabBar(
                 indicatorColor: toscaMedium,
                 indicatorWeight: 4,
-                labelColor: toscaDark, // Teks yang dipilih jadi tosca
+                labelColor: toscaDark, 
                 labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16),
                 unselectedLabelColor: Colors.grey.shade400,
                 unselectedLabelStyle: GoogleFonts.outfit(fontWeight: FontWeight.w500, fontSize: 16),
@@ -79,7 +66,6 @@ class _ActivityPageState extends State<ActivityPage> {
           ),
         ),
         
-        // ZHANGG! Background utama udeh disamain persis kaya Home/Profile (ijo tipis)
         body: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -97,50 +83,10 @@ class _ActivityPageState extends State<ActivityPage> {
           ),
         ),
         
-        floatingActionButton: SizedBox(
-        width: 65, 
-        height: 65, // Kita paksa ukurannya dari luar biar kaga error
-        child: FloatingActionButton(
-          onPressed: () {},
-          backgroundColor: Colors.transparent,
-          elevation: 12,
-          focusElevation: 0,
-          hoverElevation: 0,
-          highlightElevation: 0, // Matiin efek bawaan biar kaga bentrok
-          child: Container(
-            width: 62, height: 62,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(colors: [toscaLight, toscaDark]),
-              boxShadow: [
-                BoxShadow(color: toscaDark.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 5))
-              ]
-            ),
-            child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 28),
-          ),
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-
-        bottomNavigationBar: BottomAppBar(
-          shape: const CircularNotchedRectangle(),
-          notchMargin: 10.0,
-          child: BottomNavigationBar(
-            type: BottomNavigationBarType.fixed,
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            selectedItemColor: toscaDark,
-            unselectedItemColor: Colors.grey.shade400,
-            currentIndex: _selectedIndex,
-            onTap: _onItemTapped,
-            items: const [
-              BottomNavigationBarItem(icon: Icon(Icons.grid_view_rounded), label: 'Beranda'),
-              BottomNavigationBarItem(icon: Icon(Icons.analytics_outlined), label: 'Aktivitas'),
-              BottomNavigationBarItem(icon: Icon(Icons.rate_review_outlined), label: 'Kesan Pesan'),
-              BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profil'),
-            ],
-          ),
-        ),
+        // ZHANGG! INI DIA NAVBAR SAKTI LU PAK!
+        floatingActionButton: const CustomFAB(),
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+        bottomNavigationBar: const CustomBottomNavBar(selectedIndex: 1) // Index 1 buat Aktivitas
       ),
     );
   }

@@ -2,10 +2,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'home_page.dart'; 
-import 'activity_page.dart';
-import 'settings_page.dart'; // ZHANGG! Biar bisa pindah alam ke Setting pak
+
+import 'settings_page.dart'; 
 import 'login_page.dart';
+import 'help_support_page.dart';
+import 'custom_navbar.dart'; // ZHANGG! Pastiin ini udeh masuk ye pak
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({Key? key}) : super(key: key);
@@ -17,10 +18,8 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   String? _imagePath;
   String _username = "Tamu";
-  String _email = "tamu@bersih.in"; // REVISI: Siapin variabel email pak
+  String _email = "tamu@bersih.in"; 
   bool _isGuest = true;
-  
-  int _selectedIndex = 3; 
   
   final Color toscaDark = const Color(0xFF025955);
   final Color toscaMedium = const Color(0xFF00909E);
@@ -32,34 +31,89 @@ class _ProfilePageState extends State<ProfilePage> {
     _loadProfileData();
   }
 
-  // REVISI: Fungsi ini sekarang narik Email jg buat gantiin tulisan "Mahasiswa"
   Future<void> _loadProfileData() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _username = prefs.getString('saved_username') ?? "Tamu";
-      _email = prefs.getString('saved_email') ?? "Login buat akses penuh pak!";
+      _email = prefs.getString('saved_email') ?? "Silakan masuk untuk akses penuh";
       _imagePath = prefs.getString('profile_image');
       _isGuest = prefs.getBool('is_logged_in') == null || prefs.getBool('is_logged_in') == false;
     });
   }
 
-  void _onItemTapped(int index) {
-    if (index == 0) {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const HomePage()),
-        (route) => false,
-      );
-    } else if (index == 1) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const ActivityPage()),
-      );
-    } else {
-      setState(() {
-        _selectedIndex = index;
-      });
-    }
+  // ==========================================
+  // DIALOG KONFIRMASI LOGOUT (BAHASA BAKU)
+  // ==========================================
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.logout_rounded, color: toscaDark),
+            const SizedBox(width: 10),
+            Text(
+              'Konfirmasi Keluar',
+              style: GoogleFonts.outfit(
+                fontWeight: FontWeight.bold,
+                color: toscaDark,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Apakah Anda yakin ingin keluar dari akun Anda? Seluruh sesi aktif akan dihentikan.',
+          style: GoogleFonts.outfit(color: Colors.grey.shade700),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'BATAL',
+              style: GoogleFonts.outfit(
+                color: Colors.grey,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context); // Tutup dialognye dulu pak
+              _handleLogout(); // Baru eksekusi logout
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent.shade400,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              elevation: 0,
+            ),
+            child: Text(
+              'KELUAR',
+              style: GoogleFonts.outfit(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleLogout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    if (!mounted) return;
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginPage()), 
+      (route) => false,
+    );
   }
 
   @override
@@ -70,7 +124,7 @@ class _ProfilePageState extends State<ProfilePage> {
       appBar: AppBar(
         backgroundColor: toscaDark,
         elevation: 0,
-        title: Text('Profil Saya', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white)),
+        title: Text('Profil Pengguna', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white)),
         centerTitle: true,
         automaticallyImplyLeading: false, 
       ),
@@ -86,7 +140,7 @@ class _ProfilePageState extends State<ProfilePage> {
           constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.height),
           child: Column(
             children: [
-              // HEADER PROFIL (REVISI: Foto Polos & Email Aktif)
+              // HEADER PROFIL
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.only(bottom: 40, top: 20),
@@ -127,7 +181,6 @@ class _ProfilePageState extends State<ProfilePage> {
                       style: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                     const SizedBox(height: 5),
-                    // REVISI: TULISAN MAHASISWA UDEH GANTI JADI EMAIL USER PAK!
                     Text(
                       _email,
                       style: GoogleFonts.outfit(fontSize: 14, color: Colors.white70, letterSpacing: 0.5),
@@ -138,7 +191,7 @@ class _ProfilePageState extends State<ProfilePage> {
               
               const SizedBox(height: 30),
               
-              // MENU OPSIONAL (REVISI: OnTap Pengaturan nyambung ke SettingsPage)
+              // MENU OPSIONAL 
               _buildMenuOption(
                 Icons.settings_outlined, 
                 'Pengaturan Akun', 
@@ -147,20 +200,25 @@ class _ProfilePageState extends State<ProfilePage> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => const SettingsPage()),
-                  ).then((value) => _loadProfileData()); // Refresh data pas balik
+                  ).then((value) => _loadProfileData()); 
                 }
               ),
               _buildMenuOption(
                 Icons.history_outlined, 
-                'Riwayat Pesanan', 
+                'Riwayat Transaksi', 
                 isDisabled: _isGuest,
                 onTap: () {}
               ),
               _buildMenuOption(
                 Icons.help_outline, 
-                'Bantuan & Dukungan', 
+                'Pusat Bantuan', 
                 isDisabled: false,
-                onTap: () {}
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const HelpSupportPage()),
+                  );
+                }
               ),
 
               const SizedBox(height: 20),
@@ -176,14 +234,8 @@ class _ProfilePageState extends State<ProfilePage> {
                       if (_isGuest) {
                         Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginPage()));
                       } else {
-                        final prefs = await SharedPreferences.getInstance();
-                        await prefs.clear();
-                        if (!mounted) return;
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(builder: (context) => const LoginPage()),
-                          (route) => false,
-                        );
+                        // ZHANGG! Di mari cuma manggil dialognye doang pak
+                        _showLogoutDialog();
                       }
                     },
                     icon: Icon(_isGuest ? Icons.login_rounded : Icons.logout_rounded, color: Colors.redAccent),
@@ -202,48 +254,10 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
       ),
       
-      // FLOATING ACTION BUTTON
-      floatingActionButton: SizedBox(
-        width: 65, height: 65,
-        child: FloatingActionButton(
-          onPressed: () {},
-          backgroundColor: Colors.transparent,
-          elevation: 12,
-          child: Container(
-            width: 62, height: 62,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(colors: [toscaLight, toscaDark]),
-              boxShadow: [
-                BoxShadow(color: toscaDark.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 5))
-              ]
-            ),
-            child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 28),
-          ),
-        ),
-      ),
+      // ZHANGG! NAVBAR UDEH BENER INDEX KE-3
+      floatingActionButton: const CustomFAB(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-
-      // BOTTOM NAV
-      bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 10.0,
-        child: BottomNavigationBar(
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          selectedItemColor: toscaDark,
-          unselectedItemColor: Colors.grey.shade400,
-          currentIndex: _selectedIndex,
-          onTap: _onItemTapped,
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.grid_view_rounded), label: 'Beranda'),
-            BottomNavigationBarItem(icon: Icon(Icons.analytics_outlined), label: 'Aktivitas'),
-            BottomNavigationBarItem(icon: Icon(Icons.rate_review_outlined), label: 'Kesan Pesan'),
-            BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profil'),
-          ],
-        ),
-      ),
+      bottomNavigationBar: const CustomBottomNavBar(selectedIndex: 3)
     );
   }
 

@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 class AuthService {
   // ZHANGG! Alamat IP lu nongkrong di mari. 
   // Ganti di sini doang kalo mau ngetes pake WiFi/Hotspot lu ato hape temen lu
-  static const String baseUrl = 'http://192.168.1.25:3000/api';
+  static const String baseUrl = 'http://192.168.18.7:3000/api';
 
   // LOGIC BUAT DAFTAR
   Future<Map<String, dynamic>> register(String email, String username, String password) async {

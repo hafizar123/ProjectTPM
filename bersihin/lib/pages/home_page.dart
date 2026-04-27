@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'login_page.dart';
-import 'profile_page.dart';
-import 'activity_page.dart'; 
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'login_page.dart';
+import 'custom_navbar.dart';
+import 'order_pemanas_air_page.dart'; // ZHANGG! Ini buat ordernye
+import 'location_picker_page.dart'; // ZHANGG! Ini biang kerok errornye udeh gue masukin pak!
 
 class HomePage extends StatefulWidget {
   final String? username;
@@ -14,11 +16,9 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int _selectedIndex = 0;
   final ScrollController _scrollController = ScrollController();
   bool _isCollapsed = false;
 
-  // Variabel buat ngatur Tamu vs User
   String _username = 'Tamu';
   bool _isGuest = true;
 
@@ -61,22 +61,65 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
-  void _onItemTapped(int index) {
-    if (index == 1) {
-      Navigator.pushReplacement(
-        context, 
-        MaterialPageRoute(builder: (context) => const ActivityPage())
-      );
-    } else if (index == 3) {
-      Navigator.pushReplacement(
-        context, 
-        MaterialPageRoute(builder: (context) => const ProfilePage())
-      );
-    } else {
-      setState(() {
-        _selectedIndex = index;
-      });
-    }
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.logout_rounded, color: toscaDark),
+            const SizedBox(width: 10),
+            Text(
+              'Konfirmasi Keluar',
+              style: GoogleFonts.outfit(
+                fontWeight: FontWeight.bold,
+                color: toscaDark,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Apakah Anda yakin ingin keluar dari akun Anda? Seluruh sesi aktif akan dihentikan.',
+          style: GoogleFonts.outfit(color: Colors.grey.shade700),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'BATAL',
+              style: GoogleFonts.outfit(
+                color: Colors.grey,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context); 
+              _handleLogout(); 
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent.shade400,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              elevation: 0,
+            ),
+            child: Text(
+              'KELUAR',
+              style: GoogleFonts.outfit(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _handleLogout() async {
@@ -87,6 +130,18 @@ class _HomePageState extends State<HomePage> {
       context,
       MaterialPageRoute(builder: (context) => const HomePage()), 
       (route) => false,
+    );
+  }
+
+  void _showComingSoon(String serviceName) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Layanan $serviceName sedang dalam pengembangan.', style: GoogleFonts.outfit()),
+        backgroundColor: toscaMedium,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        margin: const EdgeInsets.only(bottom: 80, left: 20, right: 20),
+      )
     );
   }
 
@@ -132,7 +187,7 @@ class _HomePageState extends State<HomePage> {
                           ),
                         )
                       : IconButton(
-                          onPressed: _handleLogout,
+                          onPressed: _showLogoutDialog, 
                           icon: const Icon(Icons.logout_rounded, color: Colors.white, size: 22),
                         ),
                   ),
@@ -179,7 +234,7 @@ class _HomePageState extends State<HomePage> {
                                     ),
                                   )
                                 else
-                                  IconButton(onPressed: _handleLogout, icon: const Icon(Icons.logout_rounded, color: Colors.white, size: 22)),
+                                  IconButton(onPressed: _showLogoutDialog, icon: const Icon(Icons.logout_rounded, color: Colors.white, size: 22)),
                               ],
                             ),
                             const SizedBox(height: 5),
@@ -214,7 +269,6 @@ class _HomePageState extends State<HomePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 20),
-                    // ZHANGG! Banner Terbatas buat Tamu
                     if (_isGuest)
                       Container(
                         width: double.infinity,
@@ -225,7 +279,7 @@ class _HomePageState extends State<HomePage> {
                           children: [
                             Icon(Icons.lock_person_rounded, color: Colors.amber.shade800),
                             const SizedBox(width: 15),
-                            Expanded(child: Text('Akses terbatas pak! Login biar rumah lu bisa makin kinclong.', style: GoogleFonts.outfit(fontSize: 13, color: Colors.amber.shade900))),
+                            Expanded(child: Text('Akses terbatas. Silakan Login untuk menikmati fitur penuh.', style: GoogleFonts.outfit(fontSize: 13, color: Colors.amber.shade900))),
                           ],
                         ),
                       ),
@@ -264,14 +318,24 @@ class _HomePageState extends State<HomePage> {
                       mainAxisSpacing: 22,
                       childAspectRatio: 0.72,
                       children: [
-                        _buildServiceItem(Icons.water_drop_outlined, 'Pemanas\nAir'),
-                        _buildServiceItem(Icons.cleaning_services_outlined, 'Reguler'),
-                        _buildServiceItem(Icons.iron_outlined, 'Setrika'),
-                        _buildServiceItem(Icons.calendar_month_outlined, 'Bulanan'),
-                        _buildServiceItem(Icons.home_outlined, 'Deep\nClean'),
-                        _buildServiceItem(Icons.spa_outlined, 'Pijat'),
-                        _buildServiceItem(Icons.ac_unit_outlined, 'Service AC'),
-                        _buildServiceItem(Icons.chair_outlined, 'Cuci Sofa'), // ZHANGG! Udeh gue bersihin komennye pak!
+                        // ZHANGG! Di mari routingnye udeh rapi jali ke Maps duluan
+                        _buildServiceItem(Icons.water_drop_outlined, 'Pemanas\nAir', onTap: () {
+                          Navigator.push(
+                            context, 
+                            MaterialPageRoute(
+                              builder: (context) => const LocationPickerPage(
+                                nextPage: OrderPemanasAirPage(),
+                              )
+                            )
+                          );
+                        }),
+                        _buildServiceItem(Icons.cleaning_services_outlined, 'Reguler', onTap: () => _showComingSoon('Reguler Cleaning')),
+                        _buildServiceItem(Icons.iron_outlined, 'Setrika', onTap: () => _showComingSoon('Setrika')),
+                        _buildServiceItem(Icons.calendar_month_outlined, 'Bulanan', onTap: () => _showComingSoon('Langganan Bulanan')),
+                        _buildServiceItem(Icons.home_outlined, 'Deep\nClean', onTap: () => _showComingSoon('Deep Clean')),
+                        _buildServiceItem(Icons.spa_outlined, 'Pijat', onTap: () => _showComingSoon('Pijat Relaksasi')),
+                        _buildServiceItem(Icons.ac_unit_outlined, 'Service AC', onTap: () => _showComingSoon('Service AC')),
+                        _buildServiceItem(Icons.chair_outlined, 'Cuci Sofa', onTap: () => _showComingSoon('Cuci Sofa')),
                       ],
                     ),
                     const SizedBox(height: 160), 
@@ -282,53 +346,30 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      floatingActionButton: SizedBox(
-        width: 65, height: 65,
-        child: FloatingActionButton(
-          onPressed: () {},
-          backgroundColor: Colors.transparent,
-          elevation: 12,
-          child: Container(
-            width: 62, height: 62,
-            decoration: BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: [toscaLight, toscaDark])),
-            child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 28),
-          ),
-        ),
-      ),
+      floatingActionButton: const CustomFAB(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 10.0,
-        child: BottomNavigationBar(
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          selectedItemColor: toscaDark,
-          unselectedItemColor: Colors.grey.shade400,
-          currentIndex: _selectedIndex,
-          onTap: _onItemTapped,
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.grid_view_rounded), label: 'Beranda'),
-            BottomNavigationBarItem(icon: Icon(Icons.analytics_outlined), label: 'Aktivitas'),
-            BottomNavigationBarItem(icon: Icon(Icons.rate_review_outlined), label: 'Kesan Pesan'),
-            BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profil'),
-          ],
-        ),
-      ),
+      bottomNavigationBar: const CustomBottomNavBar(selectedIndex: 0)
     );
   }
 
-  Widget _buildServiceItem(IconData icon, String title) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: toscaMedium.withOpacity(0.08), blurRadius: 15, offset: const Offset(0, 8))]),
-          child: Icon(icon, size: 28, color: toscaMedium),
-        ),
-        const SizedBox(height: 10),
-        Text(title, textAlign: TextAlign.center, style: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.black87)),
-      ],
+  Widget _buildServiceItem(IconData icon, String title, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(15),
+            decoration: BoxDecoration(
+              color: Colors.white, 
+              borderRadius: BorderRadius.circular(24), 
+              boxShadow: [BoxShadow(color: toscaMedium.withOpacity(0.08), blurRadius: 15, offset: const Offset(0, 8))]
+            ),
+            child: Icon(icon, size: 28, color: toscaMedium),
+          ),
+          const SizedBox(height: 10),
+          Text(title, textAlign: TextAlign.center, style: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.black87)),
+        ],
+      ),
     );
   }
 }
