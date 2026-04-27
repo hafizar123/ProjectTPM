@@ -6,11 +6,12 @@ import 'package:latlong2/latlong.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http; 
+import 'address_detail_page.dart';
 
 class LocationPickerPage extends StatefulWidget {
-  final Widget nextPage; 
+  final Widget? nextPage; 
   
-  const LocationPickerPage({Key? key, required this.nextPage}) : super(key: key);
+  const LocationPickerPage({Key? key, this.nextPage}) : super(key: key);
 
   @override
   _LocationPickerPageState createState() => _LocationPickerPageState();
@@ -24,6 +25,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   final MapController _mapController = MapController();
   final TextEditingController _searchController = TextEditingController();
   
+  // Titik default UPNYK ye pak
   LatLng _lastMapPosition = const LatLng(-7.7602, 110.4086);
   String _currentAddress = "Geser map untuk mencari alamat...";
   bool _isLoading = true;
@@ -36,7 +38,10 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   @override
   void initState() {
     super.initState();
-    _getCurrentLocation();
+    // ZHANGG! Kasih jeda dikit biar Map-nye napas dulu sebelom nyari GPS
+    Future.delayed(const Duration(milliseconds: 500), () {
+      _getCurrentLocation();
+    });
   }
 
   @override
@@ -48,24 +53,57 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   }
 
   // ==========================================
-  // FUNGSI LBS: AMBIL LOKASI HP 
+  // FUNGSI LBS: AMBIL LOKASI HP (ANTI NGADAT)
   // ==========================================
   Future<void> _getCurrentLocation() async {
+    if (!mounted) return;
+    setState(() => _isLoading = true);
+
+    bool serviceEnabled;
+    LocationPermission permission;
+
     try {
+      serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        _showNotif('Nyalain dulu GPS di HP/Emulator lu pak!');
+        _updateLocation(_lastMapPosition);
+        return;
+      }
+
+      permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          _showNotif('Izin GPS lu tolak Mon!');
+          _updateLocation(_lastMapPosition);
+          return;
+        }
+      }
+      
+      if (permission == LocationPermission.deniedForever) {
+        _showNotif('Izin GPS diblokir permanen. Buka settingan HP!');
+        _updateLocation(_lastMapPosition);
+        return;
+      }
+
+      // Sedot posisi pake akurasi medium biar cepet dapet
       Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 10),
+        desiredAccuracy: LocationAccuracy.medium,
+        timeLimit: const Duration(seconds: 8),
       );
+      
       LatLng currentLatLng = LatLng(position.latitude, position.longitude);
       _updateLocation(currentLatLng);
+      
     } catch (e) {
+      // Kalo nyangkut tetep dimatiin loadingnye
       _updateLocation(_lastMapPosition);
-      _showNotif("Gagal dapet GPS, pastiin emulator/HP idup lokasi ye pak.");
+      _showNotif("Gagal dapet GPS! Pake lokasi default UPN aje ye.");
     }
   }
 
   // ==========================================
-  // FUNGSI AUTOCOMPLETE PAKE PHOTON KOMOOT (ANTI BANNED)
+  // FUNGSI AUTOCOMPLETE NOMINATIM (USER-AGENT VIP)
   // ==========================================
   void _onSearchChanged(String query) {
     if (_searchDebounce?.isActive ?? false) _searchDebounce!.cancel();
@@ -78,7 +116,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       return;
     }
 
-    _searchDebounce = Timer(const Duration(milliseconds: 700), () {
+    _searchDebounce = Timer(const Duration(milliseconds: 800), () {
       _fetchSuggestions(query);
     });
   }
@@ -86,34 +124,37 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   Future<void> _fetchSuggestions(String query) async {
     if (!mounted) return;
     setState(() => _isSearching = true);
+    
     try {
-      // ZHANGG! Pake server Photon, lebih kebal serangan ngetik lu pak
-      final url = Uri.parse('https://photon.komoot.io/api/?q=$query&limit=5');
-      final response = await http.get(url);
+      // Balik pake Nominatim tapi pake identitas lu biar kaga di-banned!
+      final url = Uri.parse('https://nominatim.openstreetmap.org/search?q=$query&format=json&addressdetails=1&limit=5&countrycodes=id');
+      final response = await http.get(url, headers: {
+        'User-Agent': 'BersihInApp_SimonPulung_UPNYK/1.0'
+      }).timeout(const Duration(seconds: 10)); // Batas waktu 10 detik biar kaga muter selamanya
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (mounted) {
           setState(() {
-            _searchResults = data['features'] ?? [];
+            _searchResults = data;
             _isSearching = false;
           });
         }
+      } else {
+        if (mounted) setState(() => _isSearching = false);
       }
     } catch (e) {
       if (mounted) setState(() => _isSearching = false);
+      _showNotif("Koneksi API meledak Mon, cek internet lu!");
     }
   }
 
   void _selectSuggestion(dynamic place) {
     FocusScope.of(context).unfocus();
     
-    // Photon ngebalikin koordinat kebalik [longitude, latitude] ye Mon
-    final coords = place['geometry']['coordinates'];
-    LatLng pos = LatLng(coords[1], coords[0]); 
-    
-    final props = place['properties'];
-    String namaTempat = props['name'] ?? props['street'] ?? "Lokasi Terpilih";
+    // Nominatim balikin lat/lon di root objectnye
+    LatLng pos = LatLng(double.parse(place['lat']), double.parse(place['lon'])); 
+    String namaTempat = place['name'] ?? place['display_name'].split(',')[0];
 
     setState(() {
       _searchResults = [];
@@ -124,14 +165,15 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   }
 
   // ==========================================
-  // FUNGSI REVERSE GEOCODE: TITIK -> ALAMAT (PAKE PHOTON)
+  // FUNGSI REVERSE GEOCODE: TITIK -> ALAMAT 
   // ==========================================
   void _onMapEvent(MapCamera camera, bool hasGesture) {
     if (hasGesture) {
       if (_mapDebounce?.isActive ?? false) _mapDebounce!.cancel();
       
-      // Kasih jeda 0.8 detik abis map digeser baru nyari alamat biar server kaga meledak
-      _mapDebounce = Timer(const Duration(milliseconds: 800), () {
+      if (mounted) setState(() => _currentAddress = "Mencari alamat...");
+
+      _mapDebounce = Timer(const Duration(milliseconds: 1000), () {
         _lastMapPosition = camera.center;
         _getAddress(camera.center);
       });
@@ -141,39 +183,26 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   Future<void> _getAddress(LatLng position) async {
     if (!mounted) return;
     
-    setState(() => _currentAddress = "Mencari alamat...");
-    
     try {
       final url = Uri.parse(
-        'https://photon.komoot.io/reverse?lon=${position.longitude}&lat=${position.latitude}'
+        'https://nominatim.openstreetmap.org/reverse?lat=${position.latitude}&lon=${position.longitude}&format=json'
       );
-      final response = await http.get(url);
+      final response = await http.get(url, headers: {
+        'User-Agent': 'BersihInApp_SimonPulung_UPNYK/1.0'
+      }).timeout(const Duration(seconds: 10));
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        if (data['features'] != null && data['features'].isNotEmpty) {
-          final props = data['features'][0]['properties'];
-          
-          // Susun alamat biar rapi jali
-          List<String> addressParts = [];
-          if (props['name'] != null) addressParts.add(props['name']);
-          if (props['street'] != null) addressParts.add(props['street']);
-          if (props['city'] != null || props['county'] != null) addressParts.add(props['city'] ?? props['county']);
-          if (props['state'] != null) addressParts.add(props['state']);
-
-          if (mounted) {
-            setState(() {
-              _currentAddress = addressParts.isNotEmpty 
-                  ? addressParts.join(', ') 
-                  : "Alamat spesifik kaga terdeteksi pak";
-            });
-          }
-        } else {
-          if (mounted) setState(() => _currentAddress = "Lokasi tidak diketahui");
+        if (mounted) {
+          setState(() {
+            _currentAddress = data['display_name'] ?? "Alamat spesifik kaga terdeteksi pak";
+          });
         }
+      } else {
+        if (mounted) setState(() => _currentAddress = "Gagal sedot alamat dari server pak.");
       }
     } catch (e) {
-      if (mounted) setState(() => _currentAddress = "Gagal sedot alamat ye pak...");
+      if (mounted) setState(() => _currentAddress = "Koneksi bermasalah ye pak...");
     }
   }
 
@@ -235,6 +264,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
             ),
           ),
 
+          // LOADING DIMATIIN KALO UDEH KELAR
           if (_isLoading)
             Container(color: Colors.white.withOpacity(0.5), child: Center(child: CircularProgressIndicator(color: toscaDark))),
 
@@ -243,7 +273,6 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
               padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
-                  // SEARCH BAR
                   Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -275,7 +304,6 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                     ),
                   ),
                   
-                  // DROPDOWN AUTOCOMPLETE
                   if (_searchResults.isNotEmpty || _isSearching)
                     Container(
                       margin: const EdgeInsets.only(top: 8),
@@ -296,14 +324,8 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                               separatorBuilder: (context, index) => Divider(height: 1, color: Colors.grey.shade100),
                               itemBuilder: (context, index) {
                                 final place = _searchResults[index];
-                                final props = place['properties'];
-                                
-                                final name = props['name'] ?? props['street'] ?? 'Lokasi';
-                                
-                                List<String> detailParts = [];
-                                if (props['city'] != null) detailParts.add(props['city']);
-                                if (props['state'] != null) detailParts.add(props['state']);
-                                final detail = detailParts.join(', ');
+                                final name = place['name'] ?? 'Lokasi';
+                                final detail = place['display_name'] ?? '';
                                 
                                 return ListTile(
                                   leading: Icon(Icons.location_on_rounded, color: toscaMedium),
@@ -330,7 +352,6 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                   ),
                   const SizedBox(height: 20),
                   
-                  // KONFIRMASI ALAMAT
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
@@ -357,10 +378,22 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                           height: 55,
                           child: ElevatedButton(
                             onPressed: () {
-                              Navigator.pushReplacement(
+                              // Langsung lempar koordinat & alamat ke halaman detail hunian Mon!
+                              Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) => widget.nextPage),
-                              );
+                                MaterialPageRoute(
+                                  builder: (context) => AddressDetailPage(
+                                    locationData: {
+                                      'address': _currentAddress,
+                                      'lat': _lastMapPosition.latitude,
+                                      'lng': _lastMapPosition.longitude,
+                                    },
+                                  ),
+                                ),
+                              ).then((value) {
+                                // Kalo balik dari simpen detail, Map ikutan nutup Mon!
+                                if (value == true) Navigator.pop(context, true);
+                              });
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: toscaDark,

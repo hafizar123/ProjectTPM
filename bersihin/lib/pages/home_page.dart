@@ -4,8 +4,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'login_page.dart';
 import 'custom_navbar.dart';
-import 'order_pemanas_air_page.dart'; // ZHANGG! Ini buat ordernye
-import 'location_picker_page.dart'; // ZHANGG! Ini biang kerok errornye udeh gue masukin pak!
+import 'service_detail_page.dart';
+import 'order_pemanas_air_page.dart'; 
+import 'location_picker_page.dart'; 
+import '../services/auth_service.dart'; // ZHANGG! Jangan lupa impor senjata apinye pak!
 
 class HomePage extends StatefulWidget {
   final String? username;
@@ -17,8 +19,9 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final ScrollController _scrollController = ScrollController();
+  final AuthService _authService = AuthService(); // ZHANGG! Inisialisasi service lu Mon
+  
   bool _isCollapsed = false;
-
   String _username = 'Tamu';
   bool _isGuest = true;
 
@@ -29,7 +32,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _bukaBrankas();
+    _loadHomeData();
     
     _scrollController.addListener(() {
       if (_scrollController.hasClients) {
@@ -42,15 +45,37 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  Future<void> _bukaBrankas() async {
+  // ==========================================
+  // SEDOT USERNAME LIVE DARI DB XAMPP PAK!
+  // ==========================================
+  Future<void> _loadHomeData() async {
     final prefs = await SharedPreferences.getInstance();
-    final savedName = prefs.getString('saved_username');
     final isLoggedIn = prefs.getBool('is_logged_in') ?? false;
+    final savedEmail = prefs.getString('saved_email') ?? "";
 
-    if (isLoggedIn && savedName != null) {
+    if (isLoggedIn && savedEmail.isNotEmpty) {
+      // Set nama sementara dari brankas lokal biar kaga kosong duluan
       setState(() {
-        _username = savedName;
         _isGuest = false;
+        _username = prefs.getString('saved_username') ?? "Pengguna";
+      });
+
+      // Tembak API buat dapet nama aslinye dari database!
+      final response = await _authService.getProfile(savedEmail);
+      
+      if (response['statusCode'] == 200) {
+        if (mounted) {
+          setState(() {
+            _username = response['body']['user']['username'];
+          });
+        }
+        // Update brankas lokal sekalian biar nyinkron pak
+        await prefs.setString('saved_username', _username);
+      }
+    } else {
+      setState(() {
+        _isGuest = true;
+        _username = "Tamu";
       });
     }
   }
@@ -155,6 +180,7 @@ class _HomePageState extends State<HomePage> {
         physics: const BouncingScrollPhysics(),
         slivers: [
           SliverAppBar(
+            automaticallyImplyLeading: false, // ZHANGG! Tombol back mampus di mari pak!
             expandedHeight: 200.0,
             pinned: true,
             elevation: 0,
@@ -318,15 +344,34 @@ class _HomePageState extends State<HomePage> {
                       mainAxisSpacing: 22,
                       childAspectRatio: 0.72,
                       children: [
-                        // ZHANGG! Di mari routingnye udeh rapi jali ke Maps duluan
                         _buildServiceItem(Icons.water_drop_outlined, 'Pemanas\nAir', onTap: () {
                           Navigator.push(
                             context, 
                             MaterialPageRoute(
-                              builder: (context) => const LocationPickerPage(
-                                nextPage: OrderPemanasAirPage(),
-                              )
-                            )
+                              builder: (context) => ServiceDetailPage(
+                                title: 'Layanan Pemanas Air',
+                                imagePath: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=2070&auto=format&fit=crop', 
+                                description: 'BersihIn menyediakan solusi teknis profesional untuk perawatan dan perbaikan sistem pemanas air Anda guna menjamin ketersediaan air hangat yang stabil dan efisien di hunian Anda.',
+                                targetOrderPage: const OrderPemanasAirPage(),
+                                benefits: const [
+                                  {
+                                    'icon': Icons.flash_on_rounded,
+                                    'title': 'Efisiensi Waktu',
+                                    'desc': 'Teknisi profesional kami akan tiba di lokasi sesuai dengan jadwal yang Anda tentukan tanpa penundaan.',
+                                  },
+                                  {
+                                    'icon': Icons.verified_user_rounded,
+                                    'title': 'Harga Transparan',
+                                    'desc': 'Seluruh rincian biaya ditampilkan secara eksplisit di awal pemesanan tanpa adanya biaya tersembunyi.',
+                                  },
+                                  {
+                                    'icon': Icons.engineering_rounded,
+                                    'title': 'Teknisi Ahli',
+                                    'desc': 'Proses pengerjaan dilakukan oleh tenaga ahli yang telah melewati proses verifikasi dan pelatihan ketat.',
+                                  },
+                                ],
+                              ),
+                            ),
                           );
                         }),
                         _buildServiceItem(Icons.cleaning_services_outlined, 'Reguler', onTap: () => _showComingSoon('Reguler Cleaning')),
