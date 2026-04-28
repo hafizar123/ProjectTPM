@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+// ZHANGG! Pastiin ini nyambung ke file AuthService lu ye pak
+import '../services/auth_service.dart'; 
 import 'login_page.dart';
 import 'custom_navbar.dart';
 import 'service_detail_page.dart';
 import 'order_pemanas_air_page.dart'; 
 import 'location_picker_page.dart'; 
-import '../services/auth_service.dart'; // ZHANGG! Jangan lupa impor senjata apinye pak!
 
 class HomePage extends StatefulWidget {
   final String? username;
@@ -32,7 +33,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _loadHomeData();
+    _loadHomeData(); // ZHANGG! Tembak detektifnye pas layar kebuka
     
     _scrollController.addListener(() {
       if (_scrollController.hasClients) {
@@ -50,13 +51,14 @@ class _HomePageState extends State<HomePage> {
   // ==========================================
   Future<void> _loadHomeData() async {
     final prefs = await SharedPreferences.getInstance();
-    final isLoggedIn = prefs.getBool('is_logged_in') ?? false;
+    // ZHANGG! Kalo di _handleLogin lu cuma nge-set 'saved_email',
+    // lu cukup ngecek emailnye aje, kaga usah nungguin 'is_logged_in'
     final savedEmail = prefs.getString('saved_email') ?? "";
 
-    if (isLoggedIn && savedEmail.isNotEmpty) {
+    if (savedEmail.isNotEmpty) {
       // Set nama sementara dari brankas lokal biar kaga kosong duluan
       setState(() {
-        _isGuest = false;
+        _isGuest = false; // Lu bukan tamu lagi Mon!
         _username = prefs.getString('saved_username') ?? "Pengguna";
       });
 
@@ -66,7 +68,8 @@ class _HomePageState extends State<HomePage> {
       if (response['statusCode'] == 200) {
         if (mounted) {
           setState(() {
-            _username = response['body']['user']['username'];
+            // ZHANGG! Pastiin 'user' ato langsung 'username' sesuai balikan API lu pak
+            _username = response['body']['username'] ?? response['body']['user']['username'];
           });
         }
         // Update brankas lokal sekalian biar nyinkron pak
@@ -149,7 +152,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _handleLogout() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    await prefs.clear(); // Bersihin brankas HP!
     if (!mounted) return;
     Navigator.pushAndRemoveUntil(
       context,
@@ -180,7 +183,7 @@ class _HomePageState extends State<HomePage> {
         physics: const BouncingScrollPhysics(),
         slivers: [
           SliverAppBar(
-            automaticallyImplyLeading: false, // ZHANGG! Tombol back mampus di mari pak!
+            automaticallyImplyLeading: false, 
             expandedHeight: 200.0,
             pinned: true,
             elevation: 0,

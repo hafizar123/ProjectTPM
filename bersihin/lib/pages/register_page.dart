@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-// 1. ZHANGG! Import service yang udeh lu bikin tadi
+import 'package:shared_preferences/shared_preferences.dart';
+
+// ZHANGG! Pastiin ini nyambung ke file AuthService lu ye pak
 import '../services/auth_service.dart'; 
 import 'login_page.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({Key? key}) : super(key: key);
@@ -81,94 +82,135 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SingleChildScrollView(
-        child: Container(
-          constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.height),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [toscaDark, toscaMedium.withOpacity(0.1), Colors.white],
-              stops: const [0.0, 0.4, 1.0],
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 35),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const SizedBox(height: 70),
-                Text(
-                  'Daftar Akun',
-                  style: GoogleFonts.outfit(fontSize: 34, fontWeight: FontWeight.bold, color: Colors.white),
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            child: Container(
+              constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.height),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [toscaDark, toscaMedium.withOpacity(0.1), Colors.white],
+                  stops: const [0.0, 0.4, 1.0],
                 ),
-                const SizedBox(height: 50),
-                
-                // Form Email (WAJIB ADA PAK!)
-                _buildTextField(
-                  controller: _emailController, 
-                  hint: 'Email Aktif', 
-                  icon: Icons.email_outlined, 
-                  isPassword: false, 
-                  isObscure: false,
-                ),
-                const SizedBox(height: 18),
-                
-                _buildTextField(
-                  controller: _usernameController, 
-                  hint: 'Nama Pengguna Baru', 
-                  icon: Icons.person_add_alt_1_outlined, 
-                  isPassword: false, 
-                  isObscure: false,
-                ),
-                const SizedBox(height: 18),
-                
-                _buildTextField(
-                  controller: _passwordController, 
-                  hint: 'Kata Sandi', 
-                  icon: Icons.lock_outline, 
-                  isPassword: true, 
-                  isObscure: _isPasswordHidden,
-                  onToggleVisibility: () {
-                    setState(() => _isPasswordHidden = !_isPasswordHidden);
-                  }
-                ),
-                const SizedBox(height: 18),
-                
-                _buildTextField(
-                  controller: _confirmPasswordController, 
-                  hint: 'Konfirmasi Kata Sandi', 
-                  icon: Icons.lock_reset_outlined, 
-                  isPassword: true, 
-                  isObscure: _isConfirmPasswordHidden,
-                  onToggleVisibility: () {
-                    setState(() => _isConfirmPasswordHidden = !_isConfirmPasswordHidden);
-                  }
-                ),
-                
-                const SizedBox(height: 35),
-                
-                SizedBox(
-                  width: double.infinity,
-                  height: 55,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _handleRegister,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: toscaDark,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                      elevation: 8,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 35),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 70),
+                    Text(
+                      'Daftar Akun',
+                      style: GoogleFonts.outfit(fontSize: 34, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
-                    child: _isLoading 
-                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : Text('DAFTAR SEKARANG', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white)),
-                  ),
+                    const SizedBox(height: 50),
+                    
+                    // Form Email (WAJIB ADA PAK!)
+                    _buildTextField(
+                      controller: _emailController, 
+                      hint: 'Email Aktif', 
+                      icon: Icons.email_outlined, 
+                      isPassword: false, 
+                      isObscure: false,
+                    ),
+                    const SizedBox(height: 18),
+                    
+                    _buildTextField(
+                      controller: _usernameController, 
+                      hint: 'Nama Pengguna Baru', 
+                      icon: Icons.person_add_alt_1_outlined, 
+                      isPassword: false, 
+                      isObscure: false,
+                    ),
+                    const SizedBox(height: 18),
+                    
+                    _buildTextField(
+                      controller: _passwordController, 
+                      hint: 'Kata Sandi', 
+                      icon: Icons.lock_outline, 
+                      isPassword: true, 
+                      isObscure: _isPasswordHidden,
+                      onToggleVisibility: () {
+                        setState(() => _isPasswordHidden = !_isPasswordHidden);
+                      }
+                    ),
+                    const SizedBox(height: 18),
+                    
+                    _buildTextField(
+                      controller: _confirmPasswordController, 
+                      hint: 'Konfirmasi Kata Sandi', 
+                      icon: Icons.lock_reset_outlined, 
+                      isPassword: true, 
+                      isObscure: _isConfirmPasswordHidden,
+                      onToggleVisibility: () {
+                        setState(() => _isConfirmPasswordHidden = !_isConfirmPasswordHidden);
+                      }
+                    ),
+                    
+                    const SizedBox(height: 35),
+                    
+                    SizedBox(
+                      width: double.infinity,
+                      height: 55,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _handleRegister,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: toscaDark,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                          elevation: 8,
+                        ),
+                        child: _isLoading 
+                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          : Text('DAFTAR SEKARANG', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white)),
+                      ),
+                    ),
+                    const SizedBox(height: 25),
+                    
+                    // ZHANGG! Link buat nyambung ke Login pak!
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text("Sudah punya akun? ", style: GoogleFonts.outfit(color: Colors.grey.shade600, fontSize: 13)),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const LoginPage()));
+                          },
+                          child: Text(
+                            "Masuk di sini",
+                            style: GoogleFonts.outfit(color: toscaDark, fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 40),
+                  ],
                 ),
-                const SizedBox(height: 25),
-                // ... Sisa UI Login Link lu yang kemaren ...
-              ],
+              ),
             ),
           ),
-        ),
+
+          // ZHANGG! Tombol Back sakti di pojokan pak!
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 15, left: 15),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))
+                  ]
+                ),
+                child: IconButton(
+                  icon: Icon(Icons.arrow_back_ios_new_rounded, color: toscaDark, size: 20),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

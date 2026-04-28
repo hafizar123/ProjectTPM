@@ -42,7 +42,8 @@ class _ProfilePageState extends State<ProfilePage> {
     final prefs = await SharedPreferences.getInstance();
     
     String savedEmail = prefs.getString('saved_email') ?? "";
-    bool isGuest = prefs.getBool('is_logged_in') == null || prefs.getBool('is_logged_in') == false;
+    // ZHANGG! Logikanye disamain kek Home ye pak, patokannya email doang!
+    bool isGuest = savedEmail.isEmpty;
 
     setState(() {
       _email = savedEmail.isNotEmpty ? savedEmail : "Silakan masuk untuk akses penuh";
@@ -58,7 +59,8 @@ class _ProfilePageState extends State<ProfilePage> {
       if (response['statusCode'] == 200) {
         if (mounted) {
           setState(() {
-            _username = response['body']['user']['username'];
+            // ZHANGG! Dibikin kebal error dari struktur JSON backend lu pak
+            _username = response['body']['username'] ?? response['body']['user']['username'] ?? "Pengguna";
           });
         }
         // Update brankas lokal sekalian biar nyinkron
