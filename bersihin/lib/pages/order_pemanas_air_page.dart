@@ -1,40 +1,66 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'payment_page.dart'; // ZHANGG! Pastiin file payment_page.dart udeh lu bikin pak
+import 'package:shared_preferences/shared_preferences.dart';
+import 'payment_page.dart'; 
 
 class OrderPemanasAirPage extends StatefulWidget {
-  const OrderPemanasAirPage({Key? key}) : super(key: key);
+  final String? address;
+  final String? houseType;
+  final String? patokan;
+
+  const OrderPemanasAirPage({
+    Key? key, 
+    this.address, 
+    this.houseType, 
+    this.patokan
+  }) : super(key: key);
 
   @override
   _OrderPemanasAirPageState createState() => _OrderPemanasAirPageState();
 }
 
 class _OrderPemanasAirPageState extends State<OrderPemanasAirPage> {
-  // Palet Warna Futuristik Bersih.In
   final Color toscaDark = const Color(0xFF025955);
   final Color toscaMedium = const Color(0xFF00909E);
   final Color toscaLight = const Color(0xFF48C9B0);
 
-  // Variabel State buat Form
   int _selectedServiceType = 0; 
   final TextEditingController _catatanController = TextEditingController();
 
   DateTime? _pickedDate;
   String? _pickedTime;
 
+  String _address = "Alamat belum dipilih";
+  String _houseType = "Rumah";
+  String _patokan = "-";
+
   final List<Map<String, dynamic>> _serviceTypes = [
-    {'title': 'Perbaikan Kerusakan', 'price': 'Rp 150.000', 'icon': Icons.build_circle_outlined},
-    {'title': 'Pemasangan Baru', 'price': 'Rp 250.000', 'icon': Icons.add_circle_outline_rounded},
-    {'title': 'Perawatan Berkala', 'price': 'Rp 100.000', 'icon': Icons.published_with_changes_rounded},
+    {'title': 'Perbaikan Kerusakan', 'price': 150000, 'icon': Icons.build_circle_outlined},
+    {'title': 'Pemasangan Baru', 'price': 250000, 'icon': Icons.add_circle_outline_rounded},
+    {'title': 'Perawatan Berkala', 'price': 100000, 'icon': Icons.published_with_changes_rounded},
   ];
 
-  // ZHANGG! Jam udeh otomatis dari 07:00 sampe 21:00 pak!
-  final List<String> _timeSlots = List.generate(
-    15, 
-    (index) => '${(index + 7).toString().padLeft(2, '0')}:00'
-  );
+  final List<String> _timeSlots = List.generate(15, (index) => '${(index + 7).toString().padLeft(2, '0')}:00');
 
-  // Helper buat nama hari & bulan ala tongkrongan
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedAddress(); 
+  }
+
+  Future<void> _loadSavedAddress() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _address = prefs.getString('order_address') ?? "Alamat belum dipilih";
+      _houseType = prefs.getString('order_house_type') ?? "Rumah";
+      _patokan = prefs.getString('order_patokan') ?? "-";
+    });
+  }
+
+  String _formatPrice(int p) {
+    return "Rp ${p.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}";
+  }
+
   String _getHari(int weekday) {
     const hari = ['', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
     return hari[weekday];
@@ -47,24 +73,24 @@ class _OrderPemanasAirPageState extends State<OrderPemanasAirPage> {
 
   void _showNotif(String pesan) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(pesan, style: GoogleFonts.outfit()), 
-        backgroundColor: Colors.redAccent, 
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      )
+      SnackBar(content: Text(pesan, style: GoogleFonts.outfit()), backgroundColor: Colors.redAccent, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)))
     );
   }
 
-  // ==========================================
-  // ZHANGG! BOTTOM SHEET JADWAL (VERSI FIX)
-  // ==========================================
   void _showJadwalBottomSheet() {
-    // Biar pas buka modal, dia ngerujuk ke pilihan terakhir atau hari ini
-    DateTime tempDate = _pickedDate ?? DateTime.now();
-    String? tempTime = _pickedTime;
+    DateTime now = DateTime.now();
+    
+    // ZHANGG! Kalo udeh lewat jam operasional (21:00), hari ini kaga usah ditampilin pak!
+    int startOffset = now.hour >= 21 ? 1 : 0;
+    List<DateTime> upcomingDays = List.generate(30, (index) => now.add(Duration(days: index + startOffset)));
 
-    List<DateTime> upcomingDays = List.generate(30, (index) => DateTime.now().add(Duration(days: index)));
+    // Pastiin default milih yg pertama, mencegah error kalo kemaren udeh milih hari ini terus kelewat
+    DateTime tempDate = _pickedDate ?? upcomingDays[0];
+    if (tempDate.day == now.day && startOffset == 1) {
+      tempDate = upcomingDays[0]; 
+    }
+    
+    String? tempTime = _pickedTime;
 
     showModalBottomSheet(
       context: context,
@@ -76,16 +102,11 @@ class _OrderPemanasAirPageState extends State<OrderPemanasAirPage> {
             return Container(
               height: MediaQuery.of(context).size.height * 0.75, 
               padding: const EdgeInsets.only(top: 25, left: 25, right: 25),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-              ),
+              decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Center(
-                    child: Container(width: 50, height: 5, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10))),
-                  ),
+                  Center(child: Container(width: 50, height: 5, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10)))),
                   const SizedBox(height: 25),
                   Text('Pilih Jadwal Pengerjaan', style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold, color: toscaDark)),
                   const SizedBox(height: 25),
@@ -103,7 +124,13 @@ class _OrderPemanasAirPageState extends State<OrderPemanasAirPage> {
                         bool isSelected = tempDate.day == day.day && tempDate.month == day.month;
 
                         return GestureDetector(
-                          onTap: () => setModalState(() => tempDate = day),
+                          onTap: () {
+                            setModalState(() {
+                              tempDate = day;
+                              // ZHANGG! Kalo ganti tanggal, jamnya kita reset biar ga nyangkut di jam yg mati pak
+                              tempTime = null; 
+                            });
+                          },
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
                             width: 70,
@@ -139,24 +166,40 @@ class _OrderPemanasAirPageState extends State<OrderPemanasAirPage> {
                         spacing: 12,
                         runSpacing: 12,
                         children: _timeSlots.map((time) {
-                          bool isSelected = tempTime == time;
+                          // ZHANGG! Logika sakti buat matiin jam yang udeh lewat
+                          int slotHour = int.parse(time.split(':')[0]);
+                          bool isToday = tempDate.day == now.day && tempDate.month == now.month && tempDate.year == now.year;
+                          bool isPast = isToday && slotHour <= now.hour; // Kalo jamnye sama ato kurang, mampus!
+
+                          bool isSelected = tempTime == time && !isPast;
+
                           return GestureDetector(
-                            onTap: () => setModalState(() => tempTime = time),
+                            onTap: isPast ? null : () => setModalState(() => tempTime = time),
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 200),
                               width: (MediaQuery.of(context).size.width - 50 - 36) / 4, 
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               decoration: BoxDecoration(
-                                color: isSelected ? toscaLight.withOpacity(0.15) : Colors.white,
+                                color: isPast 
+                                    ? Colors.grey.shade100 // Warna mati Mon
+                                    : (isSelected ? toscaLight.withOpacity(0.15) : Colors.white),
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: isSelected ? toscaMedium : Colors.grey.shade200, width: 1.5),
+                                border: Border.all(
+                                  color: isPast 
+                                      ? Colors.grey.shade200 
+                                      : (isSelected ? toscaMedium : Colors.grey.shade200), 
+                                  width: isSelected ? 1.5 : 1
+                                ),
                               ),
                               alignment: Alignment.center,
                               child: Text(
                                 time,
                                 style: GoogleFonts.outfit(
                                   fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                                  color: isSelected ? toscaDark : Colors.grey.shade600,
+                                  color: isPast 
+                                      ? Colors.grey.shade400 // Teks redup
+                                      : (isSelected ? toscaDark : Colors.grey.shade600),
+                                  decoration: isPast ? TextDecoration.lineThrough : null, // ZHANGG! Coret sekalian
                                 ),
                               ),
                             ),
@@ -166,28 +209,17 @@ class _OrderPemanasAirPageState extends State<OrderPemanasAirPage> {
                     ),
                   ),
 
-                  // ZHANGG! TOMBOL SIMPAN UDEH SAKTI MON
                   Container(
                     width: double.infinity,
                     height: 55,
                     margin: const EdgeInsets.only(bottom: 20, top: 10),
                     child: ElevatedButton(
                       onPressed: () {
-                        if (tempTime == null) {
-                          _showNotif('Pilih waktunye dulu pak!');
-                          return;
-                        }
-                        // ZHANGG! setState di mari biar halaman utama lu ikutan seger pak!
-                        setState(() {
-                          _pickedDate = tempDate;
-                          _pickedTime = tempTime;
-                        });
+                        if (tempTime == null) { _showNotif('Pilih waktunye dulu pak!'); return; }
+                        setState(() { _pickedDate = tempDate; _pickedTime = tempTime; });
                         Navigator.pop(context);
                       },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: toscaDark,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                      ),
+                      style: ElevatedButton.styleFrom(backgroundColor: toscaDark, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
                       child: Text('SIMPAN JADWAL', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 1)),
                     ),
                   ),
@@ -202,8 +234,13 @@ class _OrderPemanasAirPageState extends State<OrderPemanasAirPage> {
 
   @override
   Widget build(BuildContext context) {
-    String displayDate = _pickedDate != null ? "${_pickedDate!.day} ${_getBulan(_pickedDate!.month)} ${_pickedDate!.year}" : "Pilih Tanggal";
-    String displayTime = _pickedTime != null ? "$_pickedTime WIB" : "Pilih Waktu";
+    int currentPrice = _serviceTypes[_selectedServiceType]['price'];
+    
+    String displayDate = _pickedDate != null ? "${_pickedDate!.day} ${_getBulan(_pickedDate!.month)} ${_pickedDate!.year}" : "";
+    String displayTime = _pickedTime != null ? "$_pickedTime WIB" : "";
+    String combinedSchedule = (_pickedDate != null && _pickedTime != null) 
+        ? "$displayDate • $displayTime" 
+        : "Pilih Tanggal & Waktu";
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -221,19 +258,11 @@ class _OrderPemanasAirPageState extends State<OrderPemanasAirPage> {
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [toscaDark, toscaMedium.withOpacity(0.9)],
-                  ),
+                  gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [toscaDark, toscaMedium.withOpacity(0.9)]),
                 ),
                 child: Stack(
                   children: [
-                    Positioned(
-                      right: -50,
-                      top: -50,
-                      child: Icon(Icons.water_drop_outlined, size: 250, color: Colors.white.withOpacity(0.05)),
-                    ),
+                    Positioned(right: -50, top: -50, child: Icon(Icons.water_drop_outlined, size: 250, color: Colors.white.withOpacity(0.05))),
                     Padding(
                       padding: const EdgeInsets.only(left: 25, bottom: 40, right: 25),
                       child: Column(
@@ -242,11 +271,7 @@ class _OrderPemanasAirPageState extends State<OrderPemanasAirPage> {
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: toscaLight.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: toscaLight.withOpacity(0.5)),
-                            ),
+                            decoration: BoxDecoration(color: toscaLight.withOpacity(0.2), borderRadius: BorderRadius.circular(10), border: Border.all(color: toscaLight.withOpacity(0.5))),
                             child: Text('Layanan Teknis', style: GoogleFonts.outfit(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                           ),
                           const SizedBox(height: 10),
@@ -264,13 +289,7 @@ class _OrderPemanasAirPageState extends State<OrderPemanasAirPage> {
 
           SliverToBoxAdapter(
             child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.white, toscaLight.withOpacity(0.03)],
-                ),
-              ),
+              decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.white, toscaLight.withOpacity(0.03)])),
               padding: const EdgeInsets.all(25),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -306,7 +325,7 @@ class _OrderPemanasAirPageState extends State<OrderPemanasAirPage> {
                                   children: [
                                     Text(_serviceTypes[index]['title'], style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: isSelected ? toscaDark : Colors.black87)),
                                     const SizedBox(height: 4),
-                                    Text('Mulai dari ${_serviceTypes[index]['price']}', style: GoogleFonts.outfit(fontSize: 13, color: Colors.grey.shade600)),
+                                    Text('Mulai dari ${_formatPrice(_serviceTypes[index]['price'])}', style: GoogleFonts.outfit(fontSize: 13, color: Colors.grey.shade600)),
                                   ],
                                 ),
                               ),
@@ -322,12 +341,38 @@ class _OrderPemanasAirPageState extends State<OrderPemanasAirPage> {
                   Text('Jadwal Pengerjaan', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: toscaDark)),
                   const SizedBox(height: 15),
                   
-                  Row(
-                    children: [
-                      Expanded(child: _buildPickerCard(Icons.calendar_month_rounded, 'Tanggal', displayDate)),
-                      const SizedBox(width: 15),
-                      Expanded(child: _buildPickerCard(Icons.access_time_rounded, 'Waktu', displayTime)),
-                    ],
+                  GestureDetector(
+                    onTap: _showJadwalBottomSheet,
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.grey.shade200),
+                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))]
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(color: toscaLight.withOpacity(0.15), shape: BoxShape.circle),
+                            child: Icon(Icons.edit_calendar_rounded, color: toscaDark, size: 24),
+                          ),
+                          const SizedBox(width: 15),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Waktu Kedatangan', style: GoogleFonts.outfit(fontSize: 13, color: Colors.grey.shade600)),
+                                const SizedBox(height: 4),
+                                Text(combinedSchedule, style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.bold, color: toscaDark)),
+                              ],
+                            ),
+                          ),
+                          Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey.shade400),
+                        ],
+                      ),
+                    ),
                   ),
 
                   const SizedBox(height: 30),
@@ -379,7 +424,7 @@ class _OrderPemanasAirPageState extends State<OrderPemanasAirPage> {
                   children: [
                     Text('Estimasi Biaya', style: GoogleFonts.outfit(fontSize: 13, color: Colors.grey.shade600)),
                     Text(
-                      _serviceTypes[_selectedServiceType]['price'],
+                      _formatPrice(currentPrice), 
                       style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.bold, color: toscaDark),
                     ),
                   ],
@@ -389,9 +434,12 @@ class _OrderPemanasAirPageState extends State<OrderPemanasAirPage> {
               Expanded(
                 child: ElevatedButton(
                   onPressed: () {
-                    // ZHANGG! Validasi sebelum ke Payment Page Mon!
                     if (_pickedDate == null || _pickedTime == null) {
                       _showNotif('Pilih tanggal sama waktunye dulu pak bos!');
+                      return;
+                    }
+                    if (_address == "Alamat belum dipilih") {
+                      _showNotif('Lu belom milih alamat dari halaman sebelumnya Mon!');
                       return;
                     }
                     
@@ -403,13 +451,12 @@ class _OrderPemanasAirPageState extends State<OrderPemanasAirPage> {
                       MaterialPageRoute(
                         builder: (context) => PaymentPage(
                           serviceName: _serviceTypes[_selectedServiceType]['title'],
-                          price: _serviceTypes[_selectedServiceType]['price'],
+                          price: currentPrice, 
                           date: formattedDate,
                           time: formattedTime,
-
-                          address: "Jl. Seturan Raya No. 123", // Sementara tembak manual dulu
-                          houseType: "Rumah / Townhouse", 
-                          patokan: "Samping Burjo",
+                          address: _address, 
+                          houseType: _houseType, 
+                          patokan: _patokan,
                         ),
                       ),
                     );
@@ -426,36 +473,6 @@ class _OrderPemanasAirPageState extends State<OrderPemanasAirPage> {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPickerCard(IconData icon, String title, String value) {
-    return GestureDetector(
-      onTap: _showJadwalBottomSheet, 
-      child: Container(
-        padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: Colors.grey.shade200),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: toscaMedium, size: 24),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey.shade500)),
-                  const SizedBox(height: 2),
-                  Text(value, style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w600, color: toscaDark), overflow: TextOverflow.ellipsis),
-                ],
-              ),
-            ),
-          ],
         ),
       ),
     );

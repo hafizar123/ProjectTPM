@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
-import 'location_picker_page.dart'; // ZHANGG! Wajib import map lu di mari pak
+import 'location_picker_page.dart'; 
+// ZHANGG! Kaga butuh import saved_address_page lagi di mari pak!
 
 class AddressDetailPage extends StatefulWidget {
   final Map<String, dynamic> locationData; 
@@ -20,10 +21,8 @@ class _AddressDetailPageState extends State<AddressDetailPage> {
 
   final AuthService _authService = AuthService();
   
-  // ZHANGG! State buat nampung data map yang bisa berubah-ubah
   late Map<String, dynamic> _currentLocationData;
   
-  // Controller baru buat Label (Tulisan Bold) dan Patokan
   final TextEditingController _labelController = TextEditingController(); 
   final TextEditingController _descController = TextEditingController();
   
@@ -54,7 +53,6 @@ class _AddressDetailPageState extends State<AddressDetailPage> {
     final prefs = await SharedPreferences.getInstance();
     String username = prefs.getString('saved_username') ?? "Tamu";
 
-    // ZHANGG! Trik Dewa: Label digabung koma sama alamat asli biar DB XAMPP aman pak!
     String label = _labelController.text.trim();
     String rawAddress = _currentLocationData['address'];
     String finalAddressToSave = label.isNotEmpty ? "$label, $rawAddress" : rawAddress;
@@ -70,8 +68,10 @@ class _AddressDetailPageState extends State<AddressDetailPage> {
 
     if (response['statusCode'] == 200) {
       if (mounted) {
-        Navigator.pop(context, true); 
-        Navigator.pop(context, true); 
+        // ZHANGG! INI KUNCIANNYE PAK!
+        // Pop 2x biar balik ke SavedAddressPage bawaan lu yang masih ada targetOrderPage-nye!
+        Navigator.pop(context); // Pop pertama nutup Address Detail
+        Navigator.pop(context, true); // Pop kedua nutup Location Picker & ngirim sinyal true
       }
     } else {
       _showNotif("Gagal menyimpan detail alamat.");
@@ -104,14 +104,13 @@ class _AddressDetailPageState extends State<AddressDetailPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ZHANGG! 1. INPUT LABEL ALAMAT (BISA DIKETIK MANUAL)
             Text('Label Alamat (Opsional):', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: toscaDark, fontSize: 16)),
             const SizedBox(height: 10),
             TextField(
               controller: _labelController,
               style: GoogleFonts.outfit(fontSize: 14, color: Colors.black87),
               decoration: InputDecoration(
-                hintText: 'Contoh: Rumah Simon, Kosan Akmal, Kantor...',
+                hintText: 'Contoh: Rumah Simon, Kosan, Kantor...',
                 hintStyle: GoogleFonts.outfit(color: Colors.grey.shade400, fontSize: 13),
                 prefixIcon: Icon(Icons.bookmark_border_rounded, color: toscaMedium),
                 filled: true,
@@ -122,19 +121,16 @@ class _AddressDetailPageState extends State<AddressDetailPage> {
             ),
             const SizedBox(height: 25),
 
-            // ZHANGG! 2. ALAMAT MAP (KAGA BISA DIKETIK, KLIK LARI KE MAP)
             Text('Alamat Peta:', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: toscaDark, fontSize: 16)),
             const SizedBox(height: 10),
             TextField(
-              readOnly: true, // BENGONG ALIAS kaga bisa diketik manual pak!
+              readOnly: true, 
               onTap: () async {
-                // Lari lagi ke LBS map buat milih ulang
                 final result = await Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const LocationPickerPage()),
                 );
                 
-                // Kalo balikan bawa data, update alamatnye
                 if (result != null && result is Map<String, dynamic>) {
                   setState(() {
                     _currentLocationData = result;
@@ -156,14 +152,12 @@ class _AddressDetailPageState extends State<AddressDetailPage> {
             ),
             const SizedBox(height: 30),
 
-            // PILIH JENIS BANGUNAN
             Text('Tipe Hunian:', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: toscaDark, fontSize: 16)),
             const SizedBox(height: 15),
             ..._houseTypes.map((type) => _buildRadioTile(type)).toList(),
 
             const SizedBox(height: 30),
 
-            // INPUT PATOKAN
             Text('Detail Patokan / Nomer Rumah:', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: toscaDark, fontSize: 16)),
             const SizedBox(height: 10),
             TextField(
@@ -181,7 +175,6 @@ class _AddressDetailPageState extends State<AddressDetailPage> {
             ),
             const SizedBox(height: 50),
 
-            // BUTTON CONFIRM
             SizedBox(
               width: double.infinity,
               height: 60,

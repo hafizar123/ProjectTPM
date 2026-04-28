@@ -131,7 +131,7 @@ class AuthService {
     }
   }
 
-// LOGIC BUAT HAPUS ALAMAT
+  // LOGIC BUAT HAPUS ALAMAT
   Future<Map<String, dynamic>> deleteAddress(String id) async {
     try {
       final response = await http.delete(Uri.parse('$baseUrl/delete_address/$id'));
@@ -148,7 +148,7 @@ class AuthService {
         Uri.parse('$baseUrl/edit_address/$id'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'address': address, // ZHANGG! Kirim alamat barunye juga pak
+          'address': address, 
           'house_type': houseType,
           'description': description,
         }),
@@ -156,6 +156,98 @@ class AuthService {
       return {'statusCode': response.statusCode, 'body': jsonDecode(response.body)};
     } catch (e) {
       return {'statusCode': 500, 'body': {'error': 'Server meledak pak: $e'}};
+    }
+  }
+
+  // ==========================================
+  // FITUR PESANAN (ORDERS)
+  // ==========================================
+
+  Future<Map<String, dynamic>> createOrder(Map<String, dynamic> orderData) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/orders'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(orderData),
+      );
+      return {'statusCode': response.statusCode, 'body': json.decode(response.body)};
+    } catch (e) {
+      return {'statusCode': 500, 'body': {'error': e.toString()}};
+    }
+  }
+
+  Future<Map<String, dynamic>> updateOrderStatus(int orderId, String status) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/orders/$orderId/status'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'status': status}),
+      );
+      return {'statusCode': response.statusCode, 'body': json.decode(response.body)};
+    } catch (e) {
+      return {'statusCode': 500, 'body': {'error': e.toString()}};
+    }
+  }
+
+  Future<Map<String, dynamic>> getOrders(String email) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/orders/$email'));
+      return {
+        'statusCode': response.statusCode,
+        'body': json.decode(response.body)
+      };
+    } catch (e) {
+      return {'statusCode': 500, 'body': {'error': e.toString()}};
+    }
+  }
+
+  // ZHANGG! INI DIA JAGOANNYE YANG LU LUPAIN KEMAREN PAK!
+  Future<Map<String, dynamic>> cancelOrder(String identifier) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/cancel-order/$identifier'),
+      );
+      return {
+        'statusCode': response.statusCode,
+        'body': json.decode(response.body)
+      };
+    } catch (e) {
+      return {'statusCode': 500, 'body': {'error': e.toString()}};
+    }
+  }
+
+
+// ==========================================
+  // SELANG API ADMIN
+  // ==========================================
+  Future<Map<String, dynamic>> loginAdmin(String username, String password) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/admin/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'username': username, 'password': password}),
+      );
+      return {'statusCode': response.statusCode, 'body': json.decode(response.body)};
+    } catch (e) {
+      return {'statusCode': 500, 'body': {'error': e.toString()}};
+    }
+  }
+
+  Future<Map<String, dynamic>> getAllOrdersAdmin() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/admin/orders'));
+      return {'statusCode': response.statusCode, 'body': json.decode(response.body)};
+    } catch (e) {
+      return {'statusCode': 500, 'body': {'error': e.toString()}};
+    }
+  }
+
+  Future<Map<String, dynamic>> getAdminRevenue() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/admin/revenue'));
+      return {'statusCode': response.statusCode, 'body': json.decode(response.body)};
+    } catch (e) {
+      return {'statusCode': 500, 'body': {'error': e.toString()}};
     }
   }
 

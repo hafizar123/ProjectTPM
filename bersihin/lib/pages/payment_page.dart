@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../services/auth_service.dart';
+import 'waiting_payment_page.dart'; 
 
 class PaymentPage extends StatefulWidget {
   final String serviceName;
-  final String price;
+  final int price; 
   final String date;
   final String time;
   final String address;
@@ -30,66 +33,95 @@ class _PaymentPageState extends State<PaymentPage> {
   final Color toscaMedium = const Color(0xFF00909E);
   final Color toscaLight = const Color(0xFF48C9B0);
 
+  final AuthService _authService = AuthService();
   String _selectedPaymentMethod = '';
-  bool _isProcessing = false;
+  bool _isLoading = false;
 
-  void _processPayment() {
+  String _formatCurrency(int amount) {
+    return "Rp ${amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}";
+  }
+
+  void _processToWaiting() async {
     if (_selectedPaymentMethod.isEmpty) {
-      _showNotif('Pilih metode pembayaran dulu pak bos!');
+      _showNotif('Silakan pilih metode pembayaran terlebih dahulu.');
       return;
     }
 
-    setState(() => _isProcessing = true);
-    // ZHANGG! Simulasi bayar pak
-    Future.delayed(const Duration(seconds: 2), () {
-      setState(() => _isProcessing = false);
-      _showSuccessDialog();
-    });
+    setState(() => _isLoading = true);
+
+    int ppn = (widget.price * 0.11).round();
+    int total = widget.price + ppn;
+
+    String? generatedVa;
+    String? generatedQris;
+
+    if (_selectedPaymentMethod == 'qris') {
+      generatedQris = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=BersihIn_${DateTime.now().millisecondsSinceEpoch}";
+    } else {
+      generatedVa = "8877${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}";
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    String userEmail = prefs.getString('saved_email') ?? 'guest@gmail.com';
+
+    Map<String, dynamic> orderData = {
+      'user_email': userEmail,
+      'service_name': widget.serviceName,
+      'total_amount': total,
+      'payment_method': _selectedPaymentMethod,
+      'va_number': generatedVa,
+      'qris_url': generatedQris,
+      'address': widget.address,
+      'schedule_date': widget.date,
+      'schedule_time': widget.time,
+    };
+
+    final response = await _authService.createOrder(orderData);
+    
+    setState(() => _isLoading = false);
+
+    if (response['statusCode'] == 201) {
+      int realOrderId = response['body']['orderId'];
+
+      if (!mounted) return;
+      
+      // ZHANGG! Ini dia kunciannya biar kaga merah pak! 
+      // Kita tambahin initialStatus pas mau Navigator.push
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => WaitingPaymentPage(
+            orderId: realOrderId,
+            totalAmount: total,
+            paymentMethod: _selectedPaymentMethod,
+            serviceName: widget.serviceName,
+            vaNumber: generatedVa,
+            qrisUrl: generatedQris,
+            initialStatus: 'menunggu_pembayaran', // ZHANGG! Kirim status awal ke DB Mon!
+          ),
+        ),
+      );
+    } else {
+      _showNotif('Gagal memproses pesanan. Silakan periksa koneksi sistem.');
+    }
   }
 
   void _showNotif(String pesan) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(pesan, style: GoogleFonts.outfit()), backgroundColor: Colors.redAccent, behavior: SnackBarBehavior.floating)
-    );
-  }
-
-  void _showSuccessDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-        contentPadding: const EdgeInsets.all(30),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(color: toscaLight.withOpacity(0.15), shape: BoxShape.circle),
-              child: Icon(Icons.check_circle_rounded, color: toscaMedium, size: 60),
-            ),
-            const SizedBox(height: 25),
-            Text('Pembayaran Berhasil!', style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.bold, color: toscaDark)),
-            const SizedBox(height: 10),
-            Text('Pesanan Anda sudah masuk antrean teknisi Bersih.In!', textAlign: TextAlign.center, style: GoogleFonts.outfit(fontSize: 14, color: Colors.grey.shade600)),
-            const SizedBox(height: 30),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: () => Navigator.popUntil(context, (route) => route.isFirst),
-                style: ElevatedButton.styleFrom(backgroundColor: toscaDark, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
-                child: Text('KEMBALI KE BERANDA', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white)),
-              ),
-            )
-          ],
-        ),
-      ),
+      SnackBar(
+        content: Text(pesan, style: GoogleFonts.outfit(color: Colors.white)), 
+        backgroundColor: Colors.red.shade600, 
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      )
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    int ppnFee = (widget.price * 0.11).round();
+    int totalPrice = widget.price + ppnFee;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -109,111 +141,61 @@ class _PaymentPageState extends State<PaymentPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 10),
-            
-            // ==========================================
-            // 1. DETAIL ALAMAT (ELEGAN)
-            // ==========================================
             _buildSectionTitle('Lokasi Pengerjaan'),
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.grey.shade200),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(Icons.location_on_rounded, color: toscaMedium, size: 24),
-                  const SizedBox(width: 15),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(widget.houseType, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15, color: toscaDark)),
-                        const SizedBox(height: 4),
-                        Text(widget.address, style: GoogleFonts.outfit(fontSize: 13, color: Colors.grey.shade700, height: 1.4)),
-                        if (widget.patokan.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          Text('Patokan: ${widget.patokan}', style: GoogleFonts.outfit(fontSize: 12, color: toscaMedium, fontStyle: FontStyle.italic)),
-                        ]
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+            _buildInfoCard(
+              icon: Icons.location_on_rounded,
+              title: widget.houseType,
+              subtitle: widget.address,
+              footer: widget.patokan != "-" ? "Patokan: ${widget.patokan}" : null,
             ),
-
             const SizedBox(height: 25),
-
-            // ==========================================
-            // 2. DETAIL LAYANAN
-            // ==========================================
             _buildSectionTitle('Detail Layanan'),
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.grey.shade200),
-              ),
-              child: Column(
-                children: [
-                  _buildDetailRow(Icons.settings_suggest_rounded, 'Jasa', widget.serviceName),
-                  const Padding(padding: EdgeInsets.symmetric(vertical: 10), child: Divider(height: 1)),
-                  _buildDetailRow(Icons.calendar_today_rounded, 'Jadwal', '${widget.date} | ${widget.time}'),
-                ],
-              ),
+            _buildInfoCard(
+              icon: Icons.water_drop_rounded,
+              title: widget.serviceName,
+              subtitle: "${widget.date} | ${widget.time}",
             ),
-
             const SizedBox(height: 25),
-
-            // ==========================================
-            // 3. METODE PEMBAYARAN (QRIS ADDED!)
-            // ==========================================
-            _buildSectionTitle('Metode Pembayaran'),
-            _buildPaymentMethodTile('qris', 'QRIS (Gopay, Dana, ShopeePay)', Icons.qr_code_scanner_rounded),
-            _buildPaymentMethodTile('gopay', 'GoPay', Icons.account_balance_wallet_rounded),
-            _buildPaymentMethodTile('bca_va', 'BCA Virtual Account', Icons.account_balance_rounded),
-
+            _buildSectionTitle('Pilih Metode Pembayaran'),
+            Text('Pembayaran Instan', style: GoogleFonts.outfit(fontSize: 13, color: Colors.grey.shade500, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 10),
+            _buildPaymentTile('qris', 'QRIS (Gopay, Dana, OVO, ShopeePay)', Icons.qr_code_scanner_rounded),
+            const SizedBox(height: 20),
+            Text('Virtual Account Bank', style: GoogleFonts.outfit(fontSize: 13, color: Colors.grey.shade500, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 10),
+            _buildPaymentTile('bca', 'BCA Virtual Account', Icons.account_balance_rounded),
+            _buildPaymentTile('mandiri', 'Mandiri Virtual Account', Icons.account_balance_rounded),
+            _buildPaymentTile('bni', 'BNI Virtual Account', Icons.account_balance_rounded),
+            _buildPaymentTile('bri', 'BRI Virtual Account', Icons.account_balance_rounded),
             const SizedBox(height: 25),
-
-            // ==========================================
-            // 4. RINCIAN BIAYA (DIBAWAH PAK!)
-            // ==========================================
             _buildSectionTitle('Ringkasan Biaya'),
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: toscaDark.withOpacity(0.03),
+                color: toscaDark.withOpacity(0.04),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: toscaMedium.withOpacity(0.1)),
               ),
               child: Column(
                 children: [
-                  _buildPriceRow('Biaya Layanan', widget.price),
+                  _buildPriceRow('Biaya Layanan', _formatCurrency(widget.price)),
                   const SizedBox(height: 10),
-                  _buildPriceRow('Biaya Platform', 'Rp 2.000'),
-                  const Padding(padding: EdgeInsets.symmetric(vertical: 15), child: Divider(height: 1, thickness: 1, color: Colors.grey)),
+                  _buildPriceRow('PPN (11%)', _formatCurrency(ppnFee)),
+                  const Padding(padding: EdgeInsets.symmetric(vertical: 15), child: Divider(height: 1, thickness: 1)),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text('Total Pembayaran', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87)),
-                      Text(widget.price, style: GoogleFonts.outfit(fontWeight: FontWeight.w900, fontSize: 20, color: toscaDark)), // ZHANGG! Totalnye Mon
+                      Text(_formatCurrency(totalPrice), style: GoogleFonts.outfit(fontWeight: FontWeight.w900, fontSize: 22, color: toscaDark)), 
                     ],
                   ),
                 ],
               ),
             ),
-            
             const SizedBox(height: 120), 
           ],
         ),
       ),
-
-      // ==========================================
-      // STICKY BOTTOM BUTTON
-      // ==========================================
       bottomSheet: Container(
         padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 20),
         decoration: BoxDecoration(
@@ -225,13 +207,13 @@ class _PaymentPageState extends State<PaymentPage> {
             width: double.infinity,
             height: 60,
             child: ElevatedButton(
-              onPressed: _isProcessing ? null : _processPayment,
+              onPressed: _isLoading ? null : _processToWaiting,
               style: ElevatedButton.styleFrom(
                 backgroundColor: toscaDark,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 elevation: 0,
               ),
-              child: _isProcessing 
+              child: _isLoading 
                 ? const SizedBox(width: 25, height: 25, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
                 : Text('BAYAR SEKARANG', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 1.2)),
             ),
@@ -241,7 +223,6 @@ class _PaymentPageState extends State<PaymentPage> {
     );
   }
 
-  // WIDGET HELPER
   Widget _buildSectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12, left: 5),
@@ -249,15 +230,35 @@ class _PaymentPageState extends State<PaymentPage> {
     );
   }
 
-  Widget _buildDetailRow(IconData icon, String label, String value) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: toscaMedium),
-        const SizedBox(width: 12),
-        Text(label, style: GoogleFonts.outfit(fontSize: 14, color: Colors.grey.shade600)),
-        const Spacer(),
-        Text(value, style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87)),
-      ],
+  Widget _buildInfoCard({required IconData icon, required String title, required String subtitle, String? footer}) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: toscaMedium, size: 24),
+          const SizedBox(width: 15),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15, color: toscaDark)),
+                const SizedBox(height: 4),
+                Text(subtitle, style: GoogleFonts.outfit(fontSize: 13, color: Colors.grey.shade700, height: 1.4)),
+                if (footer != null) ...[
+                  const SizedBox(height: 8),
+                  Text(footer, style: GoogleFonts.outfit(fontSize: 12, color: toscaMedium, fontStyle: FontStyle.italic)),
+                ]
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -271,24 +272,27 @@ class _PaymentPageState extends State<PaymentPage> {
     );
   }
 
-  Widget _buildPaymentMethodTile(String id, String name, IconData icon) {
+  Widget _buildPaymentTile(String id, String name, IconData icon) {
     bool isSelected = _selectedPaymentMethod == id;
     return GestureDetector(
       onTap: () => setState(() => _selectedPaymentMethod = id),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        margin: const EdgeInsets.only(bottom: 12),
+        margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isSelected ? toscaLight.withOpacity(0.1) : Colors.white,
           borderRadius: BorderRadius.circular(15),
           border: Border.all(color: isSelected ? toscaMedium : Colors.grey.shade200, width: isSelected ? 2 : 1),
+          boxShadow: [
+            if (isSelected) BoxShadow(color: toscaMedium.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4))
+          ]
         ),
         child: Row(
           children: [
             Icon(icon, color: isSelected ? toscaDark : Colors.grey.shade400, size: 22),
             const SizedBox(width: 15),
-            Text(name, style: GoogleFonts.outfit(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: isSelected ? toscaDark : Colors.black87)),
+            Text(name, style: GoogleFonts.outfit(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: isSelected ? toscaDark : Colors.black87, fontSize: 14)),
             const Spacer(),
             Icon(isSelected ? Icons.check_circle_rounded : Icons.circle_outlined, color: isSelected ? toscaMedium : Colors.grey.shade300, size: 20),
           ],

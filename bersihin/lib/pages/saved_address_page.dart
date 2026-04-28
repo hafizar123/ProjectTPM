@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../services/auth_service.dart'; // ZHANGG! Pastiin path file auth_service lu bener ye pak
+import '../services/auth_service.dart'; 
 import 'location_picker_page.dart';
 
 class SavedAddressPage extends StatefulWidget {
-  final Widget targetOrderPage;
+  // ZHANGG! Ini kunciannye pak, kasih tanda tanya biar kaga wajib!
+  final Widget? targetOrderPage; 
   
-  const SavedAddressPage({Key? key, required this.targetOrderPage}) : super(key: key);
+  const SavedAddressPage({Key? key, this.targetOrderPage}) : super(key: key);
 
   @override
   _SavedAddressPageState createState() => _SavedAddressPageState();
 }
 
 class _SavedAddressPageState extends State<SavedAddressPage> {
-  // Palet Warna Futuristik Bersih.In
   final Color toscaDark = const Color(0xFF025955);
   final Color toscaMedium = const Color(0xFF00909E);
   final Color toscaLight = const Color(0xFF48C9B0);
@@ -31,9 +31,6 @@ class _SavedAddressPageState extends State<SavedAddressPage> {
     _loadAddressesFromDB();
   }
 
-  // ==========================================
-  // SEDOT DATA DARI XAMPP VIA AUTH SERVICE
-  // ==========================================
   Future<void> _loadAddressesFromDB() async {
     final prefs = await SharedPreferences.getInstance();
     _username = prefs.getString('saved_username') ?? 'Tamu';
@@ -60,9 +57,6 @@ class _SavedAddressPageState extends State<SavedAddressPage> {
     }
   }
 
-  // ==========================================
-  // FUNGSI HAPUS ALAMAT (DELETE)
-  // ==========================================
   Future<void> _deleteAddress(String id) async {
     setState(() => _isLoading = true);
     final response = await _authService.deleteAddress(id);
@@ -87,11 +81,7 @@ class _SavedAddressPageState extends State<SavedAddressPage> {
     );
   }
 
-  // ==========================================
-  // BOTTOM SHEET BUAT EDIT (LABEL, TIPE, PATOKAN)
-  // ==========================================
   void _showEditBottomSheet(dynamic item) {
-    // ZHANGG! Logika misahin Label (Bold) sama Alamat asli dari DB pak
     String fullAddress = item['address'] ?? '';
     List<String> parts = fullAddress.split(', ');
     String currentLabel = parts.isNotEmpty ? parts[0] : "";
@@ -128,7 +118,6 @@ class _SavedAddressPageState extends State<SavedAddressPage> {
                   Text('Edit Alamat Tersimpan', style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold, color: toscaDark)),
                   const SizedBox(height: 20),
                   
-                  // INPUT BUAT EDIT NAMA TEMPAT (BOLD)
                   Text('Nama Tempat / Label', style: GoogleFonts.outfit(fontWeight: FontWeight.w600, color: Colors.grey.shade700)),
                   const SizedBox(height: 10),
                   TextField(
@@ -144,7 +133,6 @@ class _SavedAddressPageState extends State<SavedAddressPage> {
                   ),
                   const SizedBox(height: 20),
 
-                  // PILIHAN TIPE HUNIAN
                   Text('Tipe Hunian', style: GoogleFonts.outfit(fontWeight: FontWeight.w600, color: Colors.grey.shade700)),
                   const SizedBox(height: 10),
                   Container(
@@ -171,7 +159,6 @@ class _SavedAddressPageState extends State<SavedAddressPage> {
                   ),
                   const SizedBox(height: 20),
 
-                  // INPUT PATOKAN BARU
                   Text('Detail Patokan', style: GoogleFonts.outfit(fontWeight: FontWeight.w600, color: Colors.grey.shade700)),
                   const SizedBox(height: 10),
                   TextField(
@@ -187,7 +174,6 @@ class _SavedAddressPageState extends State<SavedAddressPage> {
                   ),
                   const SizedBox(height: 30),
 
-                  // TOMBOL SIMPAN
                   SizedBox(
                     width: double.infinity,
                     height: 55,
@@ -196,13 +182,12 @@ class _SavedAddressPageState extends State<SavedAddressPage> {
                         Navigator.pop(context); 
                         setState(() => _isLoading = true);
 
-                        // Gabungin balik Label sama Alamat Peta aslinye pak!
                         String label = _labelController.text.trim();
                         String finalAddressToSave = label.isNotEmpty ? "$label, $rawAddress" : rawAddress;
 
                         final response = await _authService.editAddress(
                           item['id'].toString(), 
-                          finalAddressToSave, // Kirim alamat gabungan ke backend
+                          finalAddressToSave, 
                           _selectedHouseType, 
                           _descController.text
                         );
@@ -238,7 +223,6 @@ class _SavedAddressPageState extends State<SavedAddressPage> {
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          // HEADER SLIVER FUTURISTIK
           SliverAppBar(
             expandedHeight: 180.0,
             pinned: true,
@@ -265,11 +249,7 @@ class _SavedAddressPageState extends State<SavedAddressPage> {
                 ),
                 child: Stack(
                   children: [
-                    Positioned(
-                      right: -30,
-                      top: -20,
-                      child: Icon(Icons.map_outlined, size: 150, color: Colors.white.withOpacity(0.05)),
-                    ),
+                    Positioned(right: -30, top: -20, child: Icon(Icons.map_outlined, size: 150, color: Colors.white.withOpacity(0.05))),
                     Padding(
                       padding: const EdgeInsets.only(left: 25, bottom: 30, right: 25),
                       child: Column(
@@ -290,13 +270,9 @@ class _SavedAddressPageState extends State<SavedAddressPage> {
             ),
           ),
 
-          // ISI KONTEN (LIST ALAMAT)
           SliverToBoxAdapter(
             child: _isLoading 
-              ? Padding(
-                  padding: const EdgeInsets.only(top: 100),
-                  child: Center(child: CircularProgressIndicator(color: toscaMedium)),
-                )
+              ? Padding(padding: const EdgeInsets.only(top: 100), child: Center(child: CircularProgressIndicator(color: toscaMedium)))
               : Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
                   child: Column(
@@ -312,12 +288,10 @@ class _SavedAddressPageState extends State<SavedAddressPage> {
                             physics: const NeverScrollableScrollPhysics(),
                             itemCount: _savedAddresses.length,
                             itemBuilder: (context, index) {
-                              final item = _savedAddresses[index];
-                              return _buildAddressCard(item);
+                              return _buildAddressCard(_savedAddresses[index]);
                             },
                           ),
-                          
-                      const SizedBox(height: 120), // Spasi buat tombol di bawah
+                      const SizedBox(height: 120), 
                     ],
                   ),
                 ),
@@ -325,7 +299,6 @@ class _SavedAddressPageState extends State<SavedAddressPage> {
         ],
       ),
 
-      // TOMBOL FLOATING TAMBAH ALAMAT 
       bottomSheet: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
         decoration: BoxDecoration(
@@ -344,11 +317,7 @@ class _SavedAddressPageState extends State<SavedAddressPage> {
                   return;
                 }
 
-                // Lari ke map, kalo balikan dapet nilai true, refresh listnye
-                final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LocationPickerPage()),
-                );
+                final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => const LocationPickerPage()));
 
                 if (result == true) {
                   setState(() => _isLoading = true);
@@ -369,24 +338,15 @@ class _SavedAddressPageState extends State<SavedAddressPage> {
     );
   }
 
-  // WIDGET KETIKA BELUM ADA ALAMAT
   Widget _buildEmptyState() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(40),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.grey.shade200)),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            padding: const EdgeInsets.all(25),
-            decoration: BoxDecoration(color: toscaLight.withOpacity(0.1), shape: BoxShape.circle),
-            child: Icon(Icons.map_rounded, size: 60, color: toscaMedium),
-          ),
+          Container(padding: const EdgeInsets.all(25), decoration: BoxDecoration(color: toscaLight.withOpacity(0.1), shape: BoxShape.circle), child: Icon(Icons.map_rounded, size: 60, color: toscaMedium)),
           const SizedBox(height: 25),
           Text('Belum Ada Alamat', style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold, color: toscaDark)),
           const SizedBox(height: 8),
@@ -396,15 +356,11 @@ class _SavedAddressPageState extends State<SavedAddressPage> {
     );
   }
 
-  // WIDGET CARD ALAMAT TERSIMPAN PREMIUM
   Widget _buildAddressCard(dynamic item) {
     String fullAddress = item['address'] ?? 'Alamat Tidak Diketahui';
-    
-    // ZHANGG! Ini logika pemisah alamat yang bikin UI lu rapi pak
     List<String> parts = fullAddress.split(', ');
     String title = parts.isNotEmpty ? parts[0] : 'Lokasi'; 
     String subAddress = parts.length > 1 ? parts.sublist(1).join(', ') : fullAddress;
-
     String houseType = item['house_type'] ?? 'Rumah';
     String desc = item['description'] ?? '';
 
@@ -424,9 +380,20 @@ class _SavedAddressPageState extends State<SavedAddressPage> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          onTap: () {
-            // Pas diklik, lari ke form order lu Mon
-            Navigator.push(context, MaterialPageRoute(builder: (context) => widget.targetOrderPage));
+          onTap: () async {
+            // ZHANGG! Cuma pindah kalo targetOrderPage ada isinye pak!
+            if (widget.targetOrderPage != null) {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setString('order_address', subAddress);
+              await prefs.setString('order_house_type', houseType);
+              await prefs.setString('order_patokan', desc);
+
+              if (!mounted) return;
+              Navigator.push(context, MaterialPageRoute(builder: (context) => widget.targetOrderPage!));
+            } else {
+              // Kalo kosong, kita kasih tau aje
+              _showNotif('Alamat ini siap dipakai buat order nanti Mon!');
+            }
           },
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -450,12 +417,8 @@ class _SavedAddressPageState extends State<SavedAddressPage> {
                         child: Text(houseType, style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.amber.shade900)),
                       ),
                       const SizedBox(height: 6),
-                      
-                      // Nama Tempat / Label (Bold)
                       Text(title, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16, color: toscaDark)),
                       const SizedBox(height: 4),
-                      
-                      // Alamat Detail 
                       Text(subAddress, style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey.shade600, height: 1.4), maxLines: 2, overflow: TextOverflow.ellipsis),
                       
                       if (desc.isNotEmpty) ...[
@@ -476,39 +439,17 @@ class _SavedAddressPageState extends State<SavedAddressPage> {
                   ),
                 ),
                 
-                // TOMBOL MENU TITIK TIGA
                 PopupMenuButton<String>(
                   icon: Icon(Icons.more_vert_rounded, color: Colors.grey.shade400),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                   onSelected: (String result) {
-                    if (result == 'edit') {
-                      _showEditBottomSheet(item);
-                    } else if (result == 'delete') {
-                      _deleteAddress(item['id'].toString());
-                    }
+                    if (result == 'edit') _showEditBottomSheet(item);
+                    else if (result == 'delete') _deleteAddress(item['id'].toString());
                   },
                   itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                    PopupMenuItem<String>(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit_rounded, color: toscaMedium, size: 20),
-                          const SizedBox(width: 10),
-                          Text('Edit Detail', style: GoogleFonts.outfit(color: Colors.black87)),
-                        ],
-                      ),
-                    ),
+                    PopupMenuItem<String>(value: 'edit', child: Row(children: [Icon(Icons.edit_rounded, color: toscaMedium, size: 20), const SizedBox(width: 10), Text('Edit Detail', style: GoogleFonts.outfit(color: Colors.black87))])),
                     const PopupMenuDivider(),
-                    PopupMenuItem<String>(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          const Icon(Icons.delete_rounded, color: Colors.redAccent, size: 20),
-                          const SizedBox(width: 10),
-                          Text('Hapus', style: GoogleFonts.outfit(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ),
+                    PopupMenuItem<String>(value: 'delete', child: Row(children: [const Icon(Icons.delete_rounded, color: Colors.redAccent, size: 20), const SizedBox(width: 10), Text('Hapus', style: GoogleFonts.outfit(color: Colors.redAccent, fontWeight: FontWeight.bold))])),
                   ],
                 ),
               ],

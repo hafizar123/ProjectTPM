@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../services/auth_service.dart';
+import 'waiting_payment_page.dart';
 
 // ZHANGG! Pastiin file custom_navbar lu ke-import ye pak
 import 'custom_navbar.dart';
@@ -12,13 +15,69 @@ class ActivityPage extends StatefulWidget {
 }
 
 class _ActivityPageState extends State<ActivityPage> {
-  // Variabel warna tetep kita pake buat UI
   final Color toscaDark = const Color(0xFF025955);
   final Color toscaMedium = const Color(0xFF00909E);
   final Color toscaLight = const Color(0xFF48C9B0);
 
-  // FUNGSI _onItemTapped UDEH GUE BUANG KE LAUT MON!
-  // Karena udeh di-handle full sama custom_navbar.dart
+  final AuthService _authService = AuthService();
+  
+  // ZHANGG! Wadah penampung data asli dari DB pak
+  List<dynamic> _ongoingOrders = [];
+  List<dynamic> _historyOrders = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchOrders();
+  }
+
+  Future<void> _fetchOrders() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? email = prefs.getString('saved_email');
+
+    if (email == null) {
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    final response = await _authService.getOrders(email);
+
+    if (response['statusCode'] == 200) {
+      List<dynamic> allOrders = response['body']['data'];
+      
+      setState(() {
+        // Yang belom kelar masuk kubu Ongoing
+        _ongoingOrders = allOrders.where((order) => order['status'] != 'selesai').toList();
+        // Yang udeh beres masuk kubu History
+        _historyOrders = allOrders.where((order) => order['status'] == 'selesai').toList();
+        _isLoading = false;
+      });
+    } else {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  // Helper benerin format teks status dari DB biar enak dibaca Mon
+  String _formatStatusText(String rawStatus) {
+    switch (rawStatus) {
+      case 'menunggu_pembayaran': return 'Menunggu Pembayaran';
+      case 'menunggu_konfirmasi': return 'Menunggu Konfirmasi';
+      case 'pengerjaan': return 'Sedang Dikerjakan';
+      case 'selesai': return 'Selesai';
+      default: return 'Diproses';
+    }
+  }
+
+  // Helper ngasih icon otomatis berdasarin nama layanan pak
+  IconData _getIconForService(String serviceName) {
+    String lowerName = serviceName.toLowerCase();
+    if (lowerName.contains('ac')) return Icons.ac_unit_rounded;
+    if (lowerName.contains('sofa')) return Icons.chair_rounded;
+    if (lowerName.contains('air') || lowerName.contains('pemanas')) return Icons.water_drop_rounded;
+    if (lowerName.contains('deep') || lowerName.contains('rumah')) return Icons.home_rounded;
+    return Icons.cleaning_services_rounded; // Default aje Mon
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,26 +142,22 @@ class _ActivityPageState extends State<ActivityPage> {
           ),
         ),
         
-        // ZHANGG! INI DIA NAVBAR SAKTI LU PAK!
         floatingActionButton: const CustomFAB(),
         floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-        bottomNavigationBar: const CustomBottomNavBar(selectedIndex: 1) // Index 1 buat Aktivitas
+        bottomNavigationBar: const CustomBottomNavBar(selectedIndex: 1)
       ),
     );
   }
 
   Widget _buildActivityList({required bool isOngoing}) {
-    List<Map<String, dynamic>> dummyData = isOngoing 
-      ? [
-          {'title': 'Deep Clean Rumah', 'date': '28 Apr 2026', 'time': '10:00 WIB', 'status': 'Menunggu Pekerja', 'icon': Icons.home_rounded},
-          {'title': 'Service AC Kamar', 'date': '29 Apr 2026', 'time': '13:00 WIB', 'status': 'Dijadwalkan', 'icon': Icons.ac_unit_rounded},
-        ]
-      : [
-          {'title': 'Cuci Sofa Ruang Tamu', 'date': '20 Apr 2026', 'time': '14:30 WIB', 'status': 'Selesai', 'icon': Icons.chair_rounded},
-          {'title': 'Reguler Cleaning', 'date': '15 Apr 2026', 'time': '09:00 WIB', 'status': 'Selesai', 'icon': Icons.cleaning_services_rounded},
-        ];
+    if (_isLoading) {
+      return Center(child: CircularProgressIndicator(color: toscaMedium));
+    }
 
-    if (dummyData.isEmpty) {
+    // ZHANGG! Pake data asli dari DB pak!
+    List<dynamic> targetData = isOngoing ? _ongoingOrders : _historyOrders;
+
+    if (targetData.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -117,103 +172,133 @@ class _ActivityPageState extends State<ActivityPage> {
 
     return ListView.builder(
       padding: const EdgeInsets.only(top: 25, bottom: 120, left: 20, right: 20),
-      itemCount: dummyData.length,
+      itemCount: targetData.length,
       physics: const BouncingScrollPhysics(),
       itemBuilder: (context, index) {
-        var data = dummyData[index];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24), 
-            boxShadow: [
-              BoxShadow(
-                color: toscaDark.withOpacity(0.06), 
-                blurRadius: 25, 
-                offset: const Offset(0, 10)
-              )
-            ],
-            border: Border.all(color: toscaLight.withOpacity(0.15), width: 1.5),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(22),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [toscaMedium.withOpacity(0.2), toscaLight.withOpacity(0.1)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+        var data = targetData[index];
+        
+        // ZHANGG! Mulai nambahin InkWell di sini pak biar bisa diklik!
+        return InkWell(
+          onTap: () async {
+          // ZHANGG! Tungguin user balik dari halaman detail pak
+          final shouldRefresh = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => WaitingPaymentPage(
+                orderId: data['id'],
+                totalAmount: data['total_amount'],
+                paymentMethod: data['payment_method'],
+                serviceName: data['service_name'],
+                vaNumber: data['va_number'],
+                qrisUrl: data['qris_url'],
+                initialStatus: data['status'],
+              ),
+            ),
+          );
+
+          // Kalo user balik bawa sinyal 'true' ato emang balik biasa, kita tarik data baru dari DB
+          if (shouldRefresh == true || shouldRefresh == null) {
+            _fetchOrders(); 
+          }
+        },
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24), 
+              boxShadow: [
+                BoxShadow(
+                  color: toscaDark.withOpacity(0.06), 
+                  blurRadius: 25, 
+                  offset: const Offset(0, 10)
+                )
+              ],
+              border: Border.all(color: toscaLight.withOpacity(0.15), width: 1.5),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(22),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [toscaMedium.withOpacity(0.2), toscaLight.withOpacity(0.1)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: toscaLight.withOpacity(0.3)),
                     ),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: toscaLight.withOpacity(0.3)),
+                    child: Icon(_getIconForService(data['service_name']), color: toscaDark, size: 32),
                   ),
-                  child: Icon(data['icon'], color: toscaDark, size: 32),
-                ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        data['title'],
-                        style: GoogleFonts.outfit(fontSize: 17, fontWeight: FontWeight.bold, color: toscaDark, letterSpacing: -0.3),
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          Icon(Icons.calendar_today_rounded, size: 14, color: Colors.grey.shade500),
-                          const SizedBox(width: 5),
-                          Text(
-                            "${data['date']} • ${data['time']}",
-                            style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: isOngoing ? Colors.orange.withOpacity(0.1) : toscaLight.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isOngoing ? Colors.orange.withOpacity(0.3) : toscaLight.withOpacity(0.3),
-                          )
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          data['service_name'],
+                          style: GoogleFonts.outfit(fontSize: 17, fontWeight: FontWeight.bold, color: toscaDark, letterSpacing: -0.3),
+                          maxLines: 1, overflow: TextOverflow.ellipsis,
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                        const SizedBox(height: 6),
+                        Row(
                           children: [
-                            Container(
-                              width: 6,
-                              height: 6,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: isOngoing ? Colors.orange.shade600 : toscaDark,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              data['status'],
-                              style: GoogleFonts.outfit(
-                                fontSize: 11, 
-                                fontWeight: FontWeight.bold, 
-                                color: isOngoing ? Colors.orange.shade800 : toscaDark,
-                                letterSpacing: 0.2,
+                            Icon(Icons.calendar_today_rounded, size: 14, color: Colors.grey.shade500),
+                            const SizedBox(width: 5),
+                            Expanded(
+                              child: Text(
+                                "${data['schedule_date']} • ${data['schedule_time']}",
+                                style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+                                maxLines: 1, overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 14),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: isOngoing ? Colors.orange.withOpacity(0.1) : toscaLight.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isOngoing ? Colors.orange.withOpacity(0.3) : toscaLight.withOpacity(0.3),
+                            )
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 6,
+                                height: 6,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: isOngoing ? Colors.orange.shade600 : toscaDark,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                _formatStatusText(data['status']),
+                                style: GoogleFonts.outfit(
+                                  fontSize: 11, 
+                                  fontWeight: FontWeight.bold, 
+                                  color: isOngoing ? Colors.orange.shade800 : toscaDark,
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        );
+        ); // Akhir InkWell
       },
     );
   }

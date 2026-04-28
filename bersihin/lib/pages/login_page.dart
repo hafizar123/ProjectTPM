@@ -4,7 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 // ZHANGG! Pastiin ini nyambung ke file AuthService lu ye pak
 import '../services/auth_service.dart'; 
-import 'home_page.dart';
+import 'home_page.dart'; // Wajib import Home Page pak!
+import 'admin_dashboard_page.dart'; // Wajib import halaman admin lu pak!
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -25,63 +26,74 @@ class _LoginPageState extends State<LoginPage> {
   final Color toscaMedium = const Color(0xFF00909E);
   final Color toscaLight = const Color(0xFF48C9B0);
 
+  // ZHANGG! Wajib diinisialisasi pak biar kaga null exception!
+  final AuthService _authService = AuthService(); 
+
   // ==========================================
   // LOGIKA LOGIN DENGAN ERROR HANDLING BAKU
   // ==========================================
   void _handleLogin() async {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      _showErrorSnackbar('Mohon isi email dan kata sandi Anda.');
+    String inputText = _emailController.text.trim();
+    String inputPassword = _passwordController.text.trim();
+
+    if (inputText.isEmpty || inputPassword.isEmpty) {
+      _showNotif('Isi dulu datanye pak bos!', isError: true);
       return;
     }
 
     setState(() => _isLoading = true);
 
-    try {
-      final result = await AuthService().login(
-        _emailController.text.trim(), 
-        _passwordController.text
-      );
-
+    // ZHANGG! Ini dia persimpangan satpamnye pak!
+    if (inputText == 'admin') {
+      // 1. KALO YANG LOGIN ADMIN
+      final response = await _authService.loginAdmin(inputText, inputPassword);
+      
       setState(() => _isLoading = false);
 
-      if (result['statusCode'] == 200) {
-        // ZHANGG! Kalo sukses masuk brankas lokal
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('saved_username', result['username'] ?? 'Pengguna');
-        await prefs.setString('saved_email', _emailController.text);
-        await prefs.setBool('is_logged_in', true);
-
+      if (response['statusCode'] == 200) {
         if (!mounted) return;
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Autentikasi Berhasil. Selamat Datang!', style: GoogleFonts.poppins()),
-            backgroundColor: toscaMedium,
-          ),
-        );
-
+        _showNotif('Selamat datang Bos Admin!', isError: false);
         Navigator.pushReplacement(
-          context, 
-          MaterialPageRoute(builder: (context) => const HomePage())
+          context,
+          MaterialPageRoute(builder: (context) => const AdminDashboardPage()),
         );
-      } else if (result['statusCode'] == 401) {
-        _showErrorSnackbar('Login Gagal. Email atau kata sandi salah.');
       } else {
-        _showErrorSnackbar('Terjadi kesalahan pada sistem. Silakan coba lagi nanti.');
+        _showNotif('Gagal login admin! Password lu salah pak.', isError: true);
       }
-    } catch (e) {
+
+    } else {
+      // 2. KALO YANG LOGIN USER BIASA PAKE EMAIL
+      final response = await _authService.login(inputText, inputPassword);
+      
       setState(() => _isLoading = false);
-      _showErrorSnackbar('Koneksi gagal. Pastikan server aktif dan terhubung.');
+
+      if (response['statusCode'] == 200) {
+        // Simpen sesi login user ke brankas
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('saved_email', inputText);
+        
+        if (!mounted) return;
+        _showNotif('Login berhasil! Asikin aje dah.', isError: false);
+        
+        // ZHANGG! Nendang ke halaman Home dan nebas histori rute seblomnye pak!
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const HomePage()), 
+          (route) => false, // Buang semua history!
+        );
+      } else {
+        _showNotif('Email atau password salah! Cek lagi pak.', isError: true);
+      }
     }
   }
 
-  // WIDGET SNACKBAR FUTURISTIK BUAT ERROR
-  void _showErrorSnackbar(String message) {
+  // WIDGET SNACKBAR FUTURISTIK BUAT ERROR & SUCCESS
+  void _showNotif(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.error_outline_rounded, color: Colors.white),
+            Icon(isError ? Icons.error_outline_rounded : Icons.check_circle_outline_rounded, color: Colors.white),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -91,7 +103,7 @@ class _LoginPageState extends State<LoginPage> {
             ),
           ],
         ),
-        backgroundColor: Colors.redAccent.shade400,
+        backgroundColor: isError ? Colors.redAccent.shade400 : toscaMedium,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         margin: const EdgeInsets.all(20),
@@ -143,11 +155,11 @@ class _LoginPageState extends State<LoginPage> {
                   Text('Silakan masuk ke akun Anda untuk melanjutkan.', style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey.shade600)),
                   const SizedBox(height: 40),
 
-                  // Form Email
-                  _buildLabel('Alamat Email'),
+                  // Form Email / Username Admin
+                  _buildLabel('Alamat Email / Username'),
                   _buildTextField(
                     controller: _emailController, 
-                    hint: 'Masukkan email Anda', 
+                    hint: 'Masukkan email atau admin', 
                     icon: Icons.email_outlined,
                     keyboardType: TextInputType.emailAddress,
                   ),
@@ -210,15 +222,12 @@ class _LoginPageState extends State<LoginPage> {
                   
                   const SizedBox(height: 30),
                   
-                  // Tombol Biometric (Opsional sesuai kriteria lu)
+                  // Tombol Biometric
                   Center(
                     child: IconButton(
                       icon: Icon(Icons.fingerprint_rounded, size: 50, color: toscaMedium),
                       onPressed: () {
-                        // Fitur Biometric lu bisa tancepin di mari pak
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Fitur Biometrik sedang dalam pengembangan.', style: GoogleFonts.poppins()))
-                        );
+                        _showNotif('Fitur Biometrik sedang dalam pengembangan.', isError: false);
                       },
                     ),
                   ),
