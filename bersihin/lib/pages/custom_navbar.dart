@@ -6,6 +6,7 @@ import 'home_page.dart';
 import 'activity_page.dart';
 import 'kesan_pesan_page.dart';
 import 'profile_page.dart';
+import 'ai_chat_page.dart';
 
 // ==========================================
 // WIDGET BOTTOM NAVIGATION BAR
@@ -93,7 +94,11 @@ class CustomFAB extends StatelessWidget {
       width: 65, height: 65,
       child: FloatingActionButton(
         onPressed: () {
-          // Fungsi robot AI lu bisa ditancepin di mari nanti pak
+          // ZHANGG! Peratiin bae-bae ada (context) => di sini pak!
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const AiChatPage()), // <-- INI YANG BENER MON!
+          );
         },
         backgroundColor: Colors.transparent,
         elevation: 12,
