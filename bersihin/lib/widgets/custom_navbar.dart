@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-// Import semua halaman lu di mari ye pak
-import 'home_page.dart';
-import 'activity_page.dart';
-import 'kesan_pesan_page.dart';
-import 'profile_page.dart';
-import 'ai_chat_page.dart';
+import '../views/home/home_page.dart';
+import '../views/activity/activity_page.dart';
+import '../views/support/kesan_pesan_page.dart';
+import '../views/profile/profile_page.dart';
+import '../views/support/ai_chat_page.dart';
 
 // ==========================================
 // WIDGET BOTTOM NAVIGATION BAR
@@ -17,7 +16,6 @@ class CustomBottomNavBar extends StatelessWidget {
   const CustomBottomNavBar({Key? key, required this.selectedIndex}) : super(key: key);
 
   void _onItemTapped(BuildContext context, int index) {
-    // Kalo lu ngeklik menu yang lagi aktif, kaga usah ngapa-ngapain pak
     if (selectedIndex == index) return;
 
     Widget page;
@@ -29,7 +27,7 @@ class CustomBottomNavBar extends StatelessWidget {
         page = const ActivityPage();
         break;
       case 2:
-        page = const KesanPesanPage(); // Halaman Evaluasi
+        page = const EvaluasiPage();
         break;
       case 3:
         page = const ProfilePage();
@@ -38,7 +36,6 @@ class CustomBottomNavBar extends StatelessWidget {
         page = const HomePage();
     }
 
-    // Pake PageRouteBuilder biar perpindahan halamannye kaga ada animasi slide (biar berasa beneran navbar)
     Navigator.pushReplacement(
       context,
       PageRouteBuilder(
@@ -60,8 +57,8 @@ class CustomBottomNavBar extends StatelessWidget {
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        selectedFontSize: 10, // ZHANGG! Tambahin ini Mon biar kaga overflow
-        unselectedFontSize: 10, // Tambahin ini juga ye
+        selectedFontSize: 10,
+        unselectedFontSize: 10,
         selectedItemColor: toscaDark,
         unselectedItemColor: Colors.grey.shade400,
         selectedLabelStyle: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 12),
@@ -87,28 +84,37 @@ class CustomFAB extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color toscaDark = const Color(0xFF025955);
-    final Color toscaLight = const Color(0xFF48C9B0);
-
     return SizedBox(
-      width: 65, height: 65,
+      width: 65,
+      height: 65,
       child: FloatingActionButton(
         onPressed: () {
-          // ZHANGG! Peratiin bae-bae ada (context) => di sini pak!
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const AiChatPage()), // <-- INI YANG BENER MON!
+            MaterialPageRoute(builder: (context) => const AiChatPage()),
           );
         },
         backgroundColor: Colors.transparent,
         elevation: 12,
         child: Container(
-          width: 62, height: 62,
+          width: 62,
+          height: 62,
           decoration: BoxDecoration(
-            shape: BoxShape.circle, 
-            gradient: LinearGradient(colors: [toscaLight, toscaDark])
+            shape: BoxShape.circle,
+            gradient: const LinearGradient(
+              colors: [Color(0xFF48C9B0), Color(0xFF025955)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF025955).withOpacity(0.45),
+                blurRadius: 18,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
-          child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 28),
+          child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 26),
         ),
       ),
     );

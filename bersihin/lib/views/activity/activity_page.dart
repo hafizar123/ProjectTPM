@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../services/auth_service.dart';
-import 'waiting_payment_page.dart';
-
-// ZHANGG! Pastiin file custom_navbar lu ke-import ye pak
-import 'custom_navbar.dart';
+import '../../services/auth_service.dart';
+import '../order/waiting_payment_page.dart';
+import '../../widgets/custom_navbar.dart';
 
 class ActivityPage extends StatefulWidget {
   const ActivityPage({Key? key}) : super(key: key);
@@ -18,10 +16,8 @@ class _ActivityPageState extends State<ActivityPage> {
   final Color toscaDark = const Color(0xFF025955);
   final Color toscaMedium = const Color(0xFF00909E);
   final Color toscaLight = const Color(0xFF48C9B0);
-
   final AuthService _authService = AuthService();
-  
-  // ZHANGG! Wadah penampung data asli dari DB pak
+
   List<dynamic> _ongoingOrders = [];
   List<dynamic> _historyOrders = [];
   bool _isLoading = true;
@@ -42,19 +38,33 @@ class _ActivityPageState extends State<ActivityPage> {
     }
 
     final response = await _authService.getOrders(email);
-
     if (response['statusCode'] == 200) {
       List<dynamic> allOrders = response['body']['data'];
       
-      setState(() {
-        // Yang belom kelar masuk kubu Ongoing
-        _ongoingOrders = allOrders.where((order) => order['status'] != 'selesai').toList();
-        // Yang udeh beres masuk kubu History
-        _historyOrders = allOrders.where((order) => order['status'] == 'selesai').toList();
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          // Yang belom kelar masuk kubu Ongoing
+          _ongoingOrders = allOrders.where((order) => order['status'] != 'selesai').toList();
+          // Yang udeh beres masuk kubu History
+          _historyOrders = allOrders.where((order) => order['status'] == 'selesai').toList();
+          _isLoading = false;
+        });
+      }
     } else {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  // Warna unik per status
+  Color _statusColor(String status) {
+    switch (status) {
+      case 'menunggu_pembayaran': return Colors.red.shade500;
+      case 'menunggu_konfirmasi': return Colors.orange.shade600;
+      case 'pengerjaan':          return Colors.blue.shade600;
+      case 'selesai':             return const Color(0xFF025955);
+      default:                    return Colors.grey.shade500;
     }
   }
 
@@ -102,7 +112,7 @@ class _ActivityPageState extends State<ActivityPage> {
             )
           ),
           centerTitle: false,
-          automaticallyImplyLeading: false, 
+          automaticallyImplyLeading: false,
           
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(55.0),
@@ -154,7 +164,6 @@ class _ActivityPageState extends State<ActivityPage> {
       return Center(child: CircularProgressIndicator(color: toscaMedium));
     }
 
-    // ZHANGG! Pake data asli dari DB pak!
     List<dynamic> targetData = isOngoing ? _ongoingOrders : _historyOrders;
 
     if (targetData.isEmpty) {
@@ -164,7 +173,7 @@ class _ActivityPageState extends State<ActivityPage> {
           children: [
             Icon(Icons.inbox_rounded, size: 80, color: toscaMedium.withOpacity(0.3)),
             const SizedBox(height: 15),
-            Text('Belum ada aktivitas nih, Mon!', style: GoogleFonts.outfit(color: Colors.grey.shade600, fontSize: 16)),
+            Text('Belum ada aktivitas', style: GoogleFonts.outfit(color: Colors.grey.shade600, fontSize: 16)),
           ],
         ),
       );
@@ -177,30 +186,35 @@ class _ActivityPageState extends State<ActivityPage> {
       itemBuilder: (context, index) {
         var data = targetData[index];
         
-        // ZHANGG! Mulai nambahin InkWell di sini pak biar bisa diklik!
         return InkWell(
           onTap: () async {
-          // ZHANGG! Tungguin user balik dari halaman detail pak
-          final shouldRefresh = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => WaitingPaymentPage(
-                orderId: data['id'],
-                totalAmount: data['total_amount'],
-                paymentMethod: data['payment_method'],
-                serviceName: data['service_name'],
-                vaNumber: data['va_number'],
-                qrisUrl: data['qris_url'],
-                initialStatus: data['status'],
+            final shouldRefresh = await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => WaitingPaymentPage(
+                  orderId: data['id'],
+                  totalAmount: data['total_amount'],
+                  paymentMethod: data['payment_method'],
+                  serviceName: data['service_name'],
+                  vaNumber: data['va_number'],
+                  qrisUrl: data['qris_url'],
+                  initialStatus: data['status'],
+                  address: data['address'],
+                  transactionTime: data['waktu_transaksi'],
+                  houseType: data['house_type'],
+                  patokan: data['patokan'],
+                  // currency & totalConverted sengaja tidak dikirim dari sini.
+                  // WaitingPaymentPage akan baca sendiri dari SharedPreferences
+                  // via _initTimer() menggunakan key 'order_currency_<id>'
+                  // dan 'order_converted_<id>' yang disimpan saat order dibuat.
+                ),
               ),
-            ),
-          );
+            );
 
-          // Kalo user balik bawa sinyal 'true' ato emang balik biasa, kita tarik data baru dari DB
-          if (shouldRefresh == true || shouldRefresh == null) {
-            _fetchOrders(); 
-          }
-        },
+            if (shouldRefresh == true || shouldRefresh == null) {
+              _fetchOrders(); 
+            }
+          },
           child: Container(
             margin: const EdgeInsets.only(bottom: 20),
             decoration: BoxDecoration(
@@ -250,7 +264,7 @@ class _ActivityPageState extends State<ActivityPage> {
                             const SizedBox(width: 5),
                             Expanded(
                               child: Text(
-                                "${data['schedule_date']} • ${data['schedule_time']}",
+                                "${data['schedule_date']}   ${data['schedule_time']}",
                                 style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
                                 maxLines: 1, overflow: TextOverflow.ellipsis,
                               ),
@@ -261,11 +275,11 @@ class _ActivityPageState extends State<ActivityPage> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                           decoration: BoxDecoration(
-                            color: isOngoing ? Colors.orange.withOpacity(0.1) : toscaLight.withOpacity(0.12),
+                            color: _statusColor(data['status']).withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: isOngoing ? Colors.orange.withOpacity(0.3) : toscaLight.withOpacity(0.3),
-                            )
+                              color: _statusColor(data['status']).withOpacity(0.35),
+                            ),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -275,16 +289,16 @@ class _ActivityPageState extends State<ActivityPage> {
                                 height: 6,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: isOngoing ? Colors.orange.shade600 : toscaDark,
+                                  color: _statusColor(data['status']),
                                 ),
                               ),
                               const SizedBox(width: 8),
                               Text(
                                 _formatStatusText(data['status']),
                                 style: GoogleFonts.outfit(
-                                  fontSize: 11, 
-                                  fontWeight: FontWeight.bold, 
-                                  color: isOngoing ? Colors.orange.shade800 : toscaDark,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: _statusColor(data['status']),
                                   letterSpacing: 0.2,
                                 ),
                               ),
@@ -298,7 +312,7 @@ class _ActivityPageState extends State<ActivityPage> {
               ),
             ),
           ),
-        ); // Akhir InkWell
+        ); 
       },
     );
   }

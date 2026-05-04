@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../services/auth_service.dart'; 
+import '../../services/auth_service.dart';
 import 'location_picker_page.dart';
 
 class SavedAddressPage extends StatefulWidget {
@@ -62,7 +62,7 @@ class _SavedAddressPageState extends State<SavedAddressPage> {
     final response = await _authService.deleteAddress(id);
     
     if (response['statusCode'] == 200) {
-      _showNotif('Alamat berhasil dihapus pak!');
+      _showNotif('Alamat berhasil dihapus');
       _loadAddressesFromDB();
     } else {
       _showNotif('Gagal menghapus alamat.');
@@ -313,7 +313,7 @@ class _SavedAddressPageState extends State<SavedAddressPage> {
             child: ElevatedButton.icon(
               onPressed: () async {
                 if (_username == 'Tamu') {
-                  _showNotif('Login dulu pak bos kalo mau nyimpen alamat!');
+                  _showNotif('Silakan login terlebih dahulu untuk menyimpan alamat');
                   return;
                 }
 
@@ -389,10 +389,12 @@ class _SavedAddressPageState extends State<SavedAddressPage> {
               await prefs.setString('order_patokan', desc);
 
               if (!mounted) return;
-              Navigator.push(context, MaterialPageRoute(builder: (context) => widget.targetOrderPage!));
+
+              Widget targetPage = widget.targetOrderPage!;
+              Navigator.push(context, MaterialPageRoute(builder: (context) => targetPage));
             } else {
               // Kalo kosong, kita kasih tau aje
-              _showNotif('Alamat ini siap dipakai buat order nanti Mon!');
+              _showNotif('Alamat siap digunakan untuk pemesanan');
             }
           },
           child: Padding(

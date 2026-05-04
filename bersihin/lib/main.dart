@@ -1,22 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:firebase_core/firebase_core.dart'; // ZHANGG! Wajib di-import pak!
-import 'pages/home_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'views/home/home_page.dart';
+import 'services/notification_service.dart';
 
 void main() async {
-  // Wajib dipanggil kalo fungsi main-nye pake async
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ZHANGG! Ini satpamnye pak, nyalain kompor Firebase di mari!
-  if (Firebase.apps.isEmpty) {
-    await Firebase.initializeApp();
-  }
-
-  // Inisialisasi Hive buat database lokal biar kenceng
   await Hive.initFlutter();
-  
-  // Buka box (brankas) khusus buat nyimpen session dan data user
-  await Hive.openBox('userBox'); 
+  await Hive.openBox('userBox');
+
+  // Init notifikasi — channel dibuat di sini
+  await NotificationService().init();
 
   runApp(const BersihInApp());
 }
@@ -28,7 +23,7 @@ class BersihInApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Bersih.In',
-      debugShowCheckedModeBanner: false, // Biar banner tulisan DEBUG-nye ilang
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primaryColor: const Color(0xFF025955),
         colorScheme: ColorScheme.fromSwatch().copyWith(
@@ -36,8 +31,35 @@ class BersihInApp extends StatelessWidget {
           secondary: const Color(0xFF48C9B0),
         ),
       ),
-      // Halaman awal tetep nembak ke HomePage sebagai landing pagenya
-      home: const HomePage(), 
+      home: const _AppRoot(),
     );
   }
+}
+
+/// Root widget yang request permission notifikasi saat pertama buka
+class _AppRoot extends StatefulWidget {
+  const _AppRoot();
+  @override
+  State<_AppRoot> createState() => _AppRootState();
+}
+
+class _AppRootState extends State<_AppRoot> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // Request permission notifikasi — wajib di Android 13+ (API 33+)
+      await NotificationService().requestPermission();
+
+      // Jadwalkan notifikasi promosi untuk guest (belum login)
+      final prefs = await SharedPreferences.getInstance();
+      final isLoggedIn = (prefs.getString('saved_email') ?? '').isNotEmpty;
+      if (!isLoggedIn) {
+        await NotificationService().scheduleGuestNotifications();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => const HomePage();
 }

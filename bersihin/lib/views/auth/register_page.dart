@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
-// ZHANGG! Pastiin ini nyambung ke file AuthService lu ye pak
-import '../services/auth_service.dart'; 
+import '../../controllers/auth_controller.dart';
 import 'login_page.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -14,38 +11,43 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
-  // 2. Tambahin controller buat Email pak!
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
-  
+
   bool _isPasswordHidden = true;
   bool _isConfirmPasswordHidden = true;
-  bool _isLoading = false; // Buat indikator loading
-  
+  bool _isLoading = false;
+
   final Color toscaDark = const Color(0xFF025955);
   final Color toscaMedium = const Color(0xFF00909E);
 
-  // 3. ZHANGG! Logic register baru pake AuthService
+  final AuthController _authController = AuthController();
+
   void _handleRegister() async {
-    // Validasi dasar dulu pak
-    if (_emailController.text.isEmpty || 
-        _usernameController.text.isEmpty || 
+    if (_emailController.text.isEmpty ||
+        _usernameController.text.isEmpty ||
         _passwordController.text.isEmpty) {
-      _showSnackBar('Isi semua datanya dong pak!', Colors.redAccent);
+      _showSnackBar('Harap isi semua data', Colors.redAccent);
+      return;
+    }
+
+    // Validasi format email
+    final emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+    if (!emailRegex.hasMatch(_emailController.text.trim())) {
+      _showSnackBar('Format email tidak valid. Contoh: nama@email.com', Colors.redAccent);
       return;
     }
 
     if (_passwordController.text != _confirmPasswordController.text) {
-      _showSnackBar('Passwordnye kaga cocok Mon!', Colors.redAccent);
+      _showSnackBar('Konfirmasi kata sandi tidak cocok', Colors.redAccent);
       return;
     }
 
     setState(() => _isLoading = true);
 
-    // Manggil si abang kurir (AuthService)
-    final result = await AuthService().register(
+    final result = await _authController.register(
       _emailController.text,
       _usernameController.text,
       _passwordController.text,
@@ -54,18 +56,15 @@ class _RegisterPageState extends State<RegisterPage> {
     setState(() => _isLoading = false);
 
     if (result['statusCode'] == 201) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('saved_username', _usernameController.text);
-      await prefs.setString('saved_email', _emailController.text);
-      _showSnackBar('ZHANGG! Berhasil Daftar, silakan masuk pak!', toscaMedium);
-      
+      await _authController.saveSession(_emailController.text, _usernameController.text);
+      _showSnackBar('Pendaftaran berhasil, silakan masuk', toscaMedium);
+      if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const LoginPage()),
       );
     } else {
-      // Kalo email udeh dipake ato server meledak
-      _showSnackBar(result['body']['message'] ?? 'Gagal daftar nih', Colors.redAccent);
+      _showSnackBar(result['body']['message'] ?? 'Pendaftaran gagal', Colors.redAccent);
     }
   }
 
@@ -103,54 +102,49 @@ class _RegisterPageState extends State<RegisterPage> {
                     const SizedBox(height: 70),
                     Text(
                       'Daftar Akun',
-                      style: GoogleFonts.outfit(fontSize: 34, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: GoogleFonts.outfit(
+                        fontSize: 34,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                     const SizedBox(height: 50),
-                    
-                    // Form Email (WAJIB ADA PAK!)
                     _buildTextField(
-                      controller: _emailController, 
-                      hint: 'Email Aktif', 
-                      icon: Icons.email_outlined, 
-                      isPassword: false, 
+                      controller: _emailController,
+                      hint: 'Alamat Email',
+                      icon: Icons.email_outlined,
+                      isPassword: false,
                       isObscure: false,
                     ),
                     const SizedBox(height: 18),
-                    
                     _buildTextField(
-                      controller: _usernameController, 
-                      hint: 'Nama Pengguna Baru', 
-                      icon: Icons.person_add_alt_1_outlined, 
-                      isPassword: false, 
+                      controller: _usernameController,
+                      hint: 'Nama Pengguna',
+                      icon: Icons.person_add_alt_1_outlined,
+                      isPassword: false,
                       isObscure: false,
                     ),
                     const SizedBox(height: 18),
-                    
                     _buildTextField(
-                      controller: _passwordController, 
-                      hint: 'Kata Sandi', 
-                      icon: Icons.lock_outline, 
-                      isPassword: true, 
+                      controller: _passwordController,
+                      hint: 'Kata Sandi',
+                      icon: Icons.lock_outline,
+                      isPassword: true,
                       isObscure: _isPasswordHidden,
-                      onToggleVisibility: () {
-                        setState(() => _isPasswordHidden = !_isPasswordHidden);
-                      }
+                      onToggleVisibility: () =>
+                          setState(() => _isPasswordHidden = !_isPasswordHidden),
                     ),
                     const SizedBox(height: 18),
-                    
                     _buildTextField(
-                      controller: _confirmPasswordController, 
-                      hint: 'Konfirmasi Kata Sandi', 
-                      icon: Icons.lock_reset_outlined, 
-                      isPassword: true, 
+                      controller: _confirmPasswordController,
+                      hint: 'Konfirmasi Kata Sandi',
+                      icon: Icons.lock_reset_outlined,
+                      isPassword: true,
                       isObscure: _isConfirmPasswordHidden,
-                      onToggleVisibility: () {
-                        setState(() => _isConfirmPasswordHidden = !_isConfirmPasswordHidden);
-                      }
+                      onToggleVisibility: () => setState(
+                          () => _isConfirmPasswordHidden = !_isConfirmPasswordHidden),
                     ),
-                    
                     const SizedBox(height: 35),
-                    
                     SizedBox(
                       width: double.infinity,
                       height: 55,
@@ -158,28 +152,41 @@ class _RegisterPageState extends State<RegisterPage> {
                         onPressed: _isLoading ? null : _handleRegister,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: toscaDark,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18)),
                           elevation: 8,
                         ),
-                        child: _isLoading 
-                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          : Text('DAFTAR SEKARANG', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white)),
+                        child: _isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                    color: Colors.white, strokeWidth: 2))
+                            : Text(
+                                'DAFTAR SEKARANG',
+                                style: GoogleFonts.outfit(
+                                    fontWeight: FontWeight.bold, color: Colors.white),
+                              ),
                       ),
                     ),
                     const SizedBox(height: 25),
-                    
-                    // ZHANGG! Link buat nyambung ke Login pak!
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text("Sudah punya akun? ", style: GoogleFonts.outfit(color: Colors.grey.shade600, fontSize: 13)),
+                        Text("Sudah punya akun? ",
+                            style: GoogleFonts.outfit(
+                                color: Colors.grey.shade600, fontSize: 13)),
                         GestureDetector(
-                          onTap: () {
-                            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const LoginPage()));
-                          },
+                          onTap: () => Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (context) => const LoginPage()),
+                          ),
                           child: Text(
                             "Masuk di sini",
-                            style: GoogleFonts.outfit(color: toscaDark, fontWeight: FontWeight.bold, fontSize: 13),
+                            style: GoogleFonts.outfit(
+                                color: toscaDark,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13),
                           ),
                         ),
                       ],
@@ -190,8 +197,6 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
             ),
           ),
-
-          // ZHANGG! Tombol Back sakti di pojokan pak!
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.only(top: 15, left: 15),
@@ -200,8 +205,11 @@ class _RegisterPageState extends State<RegisterPage> {
                   color: Colors.white,
                   shape: BoxShape.circle,
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))
-                  ]
+                    BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2))
+                  ],
                 ),
                 child: IconButton(
                   icon: Icon(Icons.arrow_back_ios_new_rounded, color: toscaDark, size: 20),
@@ -215,12 +223,11 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  // Widget _buildTextField punya lu yang kemaren tetep dipake ye pak
   Widget _buildTextField({
-    required TextEditingController controller, 
-    required String hint, 
-    required IconData icon, 
-    required bool isPassword, 
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    required bool isPassword,
     required bool isObscure,
     VoidCallback? onToggleVisibility,
   }) {
@@ -228,7 +235,12 @@ class _RegisterPageState extends State<RegisterPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15, offset: const Offset(0, 8))],
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 15,
+              offset: const Offset(0, 8))
+        ],
       ),
       child: TextField(
         controller: controller,
@@ -238,11 +250,16 @@ class _RegisterPageState extends State<RegisterPage> {
           hintText: hint,
           hintStyle: GoogleFonts.outfit(color: Colors.grey.shade400, fontSize: 15),
           prefixIcon: Icon(icon, color: toscaMedium, size: 22),
-          suffixIcon: isPassword 
+          suffixIcon: isPassword
               ? IconButton(
-                  icon: Icon(isObscure ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: Colors.grey.shade400, size: 22),
+                  icon: Icon(
+                      isObscure
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                      color: Colors.grey.shade400,
+                      size: 22),
                   onPressed: onToggleVisibility,
-                ) 
+                )
               : null,
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 18),

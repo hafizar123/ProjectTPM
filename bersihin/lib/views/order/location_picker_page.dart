@@ -65,7 +65,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     try {
       serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        _showNotif('Nyalain dulu GPS di HP/Emulator lu pak!');
+        _showNotif('Aktifkan GPS pada perangkat Anda');
         _updateLocation(_lastMapPosition);
         return;
       }
@@ -74,14 +74,14 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          _showNotif('Izin GPS lu tolak Mon!');
+          _showNotif('Izin GPS ditolak');
           _updateLocation(_lastMapPosition);
           return;
         }
       }
       
       if (permission == LocationPermission.deniedForever) {
-        _showNotif('Izin GPS diblokir permanen. Buka settingan HP!');
+        _showNotif('Izin GPS diblokir secara permanen. Buka pengaturan perangkat');
         _updateLocation(_lastMapPosition);
         return;
       }
@@ -98,7 +98,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     } catch (e) {
       // Kalo nyangkut tetep dimatiin loadingnye
       _updateLocation(_lastMapPosition);
-      _showNotif("Gagal dapet GPS! Pake lokasi default UPN aje ye.");
+      _showNotif("Gagal mendapatkan lokasi GPS. Menggunakan lokasi default");
     }
   }
 
@@ -145,7 +145,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       }
     } catch (e) {
       if (mounted) setState(() => _isSearching = false);
-      _showNotif("Koneksi API meledak Mon, cek internet lu!");
+      _showNotif("Gagal terhubung ke server. Periksa koneksi internet Anda");
     }
   }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'live_chat_page.dart';
 
 class HelpSupportPage extends StatelessWidget {
   const HelpSupportPage({Key? key}) : super(key: key);
@@ -42,10 +43,10 @@ class HelpSupportPage extends StatelessWidget {
                 children: [
                   const Icon(Icons.support_agent_rounded, size: 80, color: Colors.white24),
                   const SizedBox(height: 15),
-                  Text('Ada yang bisa kami bantu pak?', 
+                  Text('Ada yang bisa kami bantu?', 
                     style: GoogleFonts.outfit(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 5),
-                  Text('Tim Bersih.In siap sedia 24/7 buat lu ye Mon', 
+                  Text('Tim Bersih.In siap membantu Anda 24/7', 
                     style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13)),
                 ],
               ),
@@ -63,9 +64,23 @@ class HelpSupportPage extends StatelessWidget {
                   // Row Tombol Kontak Cepat
                   Row(
                     children: [
-                      _buildContactCard(Icons.chat_rounded, 'Live Chat', toscaMedium),
+                      _buildContactCard(context, Icons.chat_rounded, 'Live Chat', toscaMedium, () {
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const LiveChatPage()));
+                      }),
                       const SizedBox(width: 15),
-                      _buildContactCard(Icons.email_rounded, 'Email', Colors.blueAccent),
+                      _buildContactCard(context, Icons.email_rounded, 'Email', Colors.blueAccent, () async {
+                        try {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Text('Email: support@bersihin.in',
+                                  style: GoogleFonts.outfit(color: Colors.white)),
+                              backgroundColor: Colors.blueAccent,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            ));
+                          }
+                        } catch (_) {}
+                      }),
                     ],
                   ),
                   
@@ -75,10 +90,10 @@ class HelpSupportPage extends StatelessWidget {
                   const SizedBox(height: 15),
 
                   // FAQ List
-                  _buildFAQItem('Gimana cara pesen layanan?', 'Buka beranda, pilih layanan yang lu mau, terus tentuin jadwalnye pak!'),
-                  _buildFAQItem('Bisa batalin pesenan kaga?', 'Bisa banget Mon, maksimal 2 jam sebelum tukang bersihnye dateng ye.'),
-                  _buildFAQItem('Pembayarannye lewat mana?', 'Bisa pake E-Wallet atau Transfer Bank, asikin aje pak!'),
-                  _buildFAQItem('Tukang bersihnye aman kaga?', 'ZHANGG! Semua mitra kita udeh lewat seleksi ketat ALIAS profesional abis!'),
+                  _buildFAQItem('Bagaimana cara memesan layanan?', 'Buka beranda, pilih layanan yang diinginkan, lalu tentukan jadwal pengerjaan'),
+                  _buildFAQItem('Apakah pesanan bisa dibatalkan?', 'Bisa, maksimal 2 jam sebelum teknisi tiba'),
+                  _buildFAQItem('Pembayaran melalui apa saja?', 'Bisa menggunakan E-Wallet atau Transfer Bank'),
+                  _buildFAQItem('Apakah teknisi kebersihan aman?', 'Semua mitra kami telah melalui seleksi ketat dan bersertifikat profesional'),
                   
                   const SizedBox(height: 40),
                   
@@ -94,7 +109,7 @@ class HelpSupportPage extends StatelessWidget {
                     child: Column(
                       children: [
                         Text('Versi Aplikasi', style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey)),
-                        Text('v2.0.4-Build-Bintang', 
+                        Text('v2.0.4', 
                           style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: toscaDark)),
                       ],
                     ),
@@ -108,22 +123,25 @@ class HelpSupportPage extends StatelessWidget {
     );
   }
 
-  Widget _buildContactCard(IconData icon, String title, Color color) {
+  Widget _buildContactCard(BuildContext context, IconData icon, String title, Color color, VoidCallback onTap) {
     return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 5))],
-          border: Border.all(color: Colors.grey.shade100),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 30),
-            const SizedBox(height: 10),
-            Text(title, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.black87)),
-          ],
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 5))],
+            border: Border.all(color: Colors.grey.shade100),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, color: color, size: 30),
+              const SizedBox(height: 10),
+              Text(title, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.black87)),
+            ],
+          ),
         ),
       ),
     );
