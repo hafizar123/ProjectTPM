@@ -5,10 +5,10 @@ import '../../services/auth_service.dart';
 import 'location_picker_page.dart';
 
 class SavedAddressPage extends StatefulWidget {
-  // ZHANGG! Ini kunciannye pak, kasih tanda tanya biar kaga wajib!
+  // Parameter opsional — null jika halaman hanya untuk manajemen alamat
   final Widget? targetOrderPage; 
   
-  const SavedAddressPage({Key? key, this.targetOrderPage}) : super(key: key);
+  const SavedAddressPage({super.key, this.targetOrderPage});
 
   @override
   _SavedAddressPageState createState() => _SavedAddressPageState();
@@ -87,9 +87,9 @@ class _SavedAddressPageState extends State<SavedAddressPage> {
     String currentLabel = parts.isNotEmpty ? parts[0] : "";
     String rawAddress = parts.length > 1 ? parts.sublist(1).join(', ') : fullAddress;
 
-    final TextEditingController _labelController = TextEditingController(text: currentLabel);
-    final TextEditingController _descController = TextEditingController(text: item['description'] ?? '');
-    String _selectedHouseType = item['house_type'] ?? 'Rumah / Townhouse';
+    final TextEditingController labelController = TextEditingController(text: currentLabel);
+    final TextEditingController descController = TextEditingController(text: item['description'] ?? '');
+    String selectedHouseType = item['house_type'] ?? 'Rumah / Townhouse';
     
     showModalBottomSheet(
       context: context,
@@ -121,7 +121,7 @@ class _SavedAddressPageState extends State<SavedAddressPage> {
                   Text('Nama Tempat / Label', style: GoogleFonts.outfit(fontWeight: FontWeight.w600, color: Colors.grey.shade700)),
                   const SizedBox(height: 10),
                   TextField(
-                    controller: _labelController,
+                    controller: labelController,
                     style: GoogleFonts.outfit(fontSize: 14),
                     decoration: InputDecoration(
                       hintText: 'Contoh: Rumah Simon, Kosan Akmal...',
@@ -144,7 +144,7 @@ class _SavedAddressPageState extends State<SavedAddressPage> {
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
-                        value: _selectedHouseType,
+                        value: selectedHouseType,
                         isExpanded: true,
                         icon: Icon(Icons.keyboard_arrow_down_rounded, color: toscaMedium),
                         style: GoogleFonts.outfit(color: Colors.black87, fontSize: 15),
@@ -152,7 +152,7 @@ class _SavedAddressPageState extends State<SavedAddressPage> {
                           return DropdownMenuItem<String>(value: value, child: Text(value));
                         }).toList(),
                         onChanged: (newValue) {
-                          setModalState(() => _selectedHouseType = newValue!);
+                          setModalState(() => selectedHouseType = newValue!);
                         },
                       ),
                     ),
@@ -162,7 +162,7 @@ class _SavedAddressPageState extends State<SavedAddressPage> {
                   Text('Detail Patokan', style: GoogleFonts.outfit(fontWeight: FontWeight.w600, color: Colors.grey.shade700)),
                   const SizedBox(height: 10),
                   TextField(
-                    controller: _descController,
+                    controller: descController,
                     maxLines: 2,
                     style: GoogleFonts.outfit(fontSize: 14),
                     decoration: InputDecoration(
@@ -182,14 +182,14 @@ class _SavedAddressPageState extends State<SavedAddressPage> {
                         Navigator.pop(context); 
                         setState(() => _isLoading = true);
 
-                        String label = _labelController.text.trim();
+                        String label = labelController.text.trim();
                         String finalAddressToSave = label.isNotEmpty ? "$label, $rawAddress" : rawAddress;
 
                         final response = await _authService.editAddress(
                           item['id'].toString(), 
                           finalAddressToSave, 
-                          _selectedHouseType, 
-                          _descController.text
+                          selectedHouseType, 
+                          descController.text
                         );
                         
                         if (response['statusCode'] == 200) {
@@ -381,7 +381,7 @@ class _SavedAddressPageState extends State<SavedAddressPage> {
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
           onTap: () async {
-            // ZHANGG! Cuma pindah kalo targetOrderPage ada isinye pak!
+            // Cuma pindah jika targetOrderPage ada isinye !
             if (widget.targetOrderPage != null) {
               final prefs = await SharedPreferences.getInstance();
               await prefs.setString('order_address', subAddress);
@@ -393,7 +393,7 @@ class _SavedAddressPageState extends State<SavedAddressPage> {
               Widget targetPage = widget.targetOrderPage!;
               Navigator.push(context, MaterialPageRoute(builder: (context) => targetPage));
             } else {
-              // Kalo kosong, kita kasih tau aje
+              // Jika targetOrderPage kosong, tampilkan notifikasi
               _showNotif('Alamat siap digunakan untuk pemesanan');
             }
           },
@@ -445,8 +445,9 @@ class _SavedAddressPageState extends State<SavedAddressPage> {
                   icon: Icon(Icons.more_vert_rounded, color: Colors.grey.shade400),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                   onSelected: (String result) {
-                    if (result == 'edit') _showEditBottomSheet(item);
-                    else if (result == 'delete') _deleteAddress(item['id'].toString());
+                    if (result == 'edit') {
+                      _showEditBottomSheet(item);
+                    } else if (result == 'delete') _deleteAddress(item['id'].toString());
                   },
                   itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
                     PopupMenuItem<String>(value: 'edit', child: Row(children: [Icon(Icons.edit_rounded, color: toscaMedium, size: 20), const SizedBox(width: 10), Text('Edit Detail', style: GoogleFonts.outfit(color: Colors.black87))])),

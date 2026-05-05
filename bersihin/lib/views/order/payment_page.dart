@@ -16,7 +16,7 @@ class PaymentPage extends StatefulWidget {
   final String patokan;
 
   const PaymentPage({
-    Key? key,
+    super.key,
     required this.serviceName,
     required this.price,
     required this.date,
@@ -24,7 +24,7 @@ class PaymentPage extends StatefulWidget {
     required this.address,
     required this.houseType,
     required this.patokan,
-  }) : super(key: key);
+  });
 
   @override
   State<PaymentPage> createState() => _PaymentPageState();
@@ -373,7 +373,7 @@ class _PaymentPageState extends State<PaymentPage> {
                   ]),
                 ),
               );
-            }).toList(),
+            }),
           ]),
           crossFadeState: _intlExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
           duration: const Duration(milliseconds: 250),

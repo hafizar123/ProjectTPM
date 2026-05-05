@@ -78,7 +78,7 @@ class NotifHistoryService {
 
 /// Halaman riwayat notifikasi
 class NotificationPage extends StatefulWidget {
-  const NotificationPage({Key? key}) : super(key: key);
+  const NotificationPage({super.key});
   @override
   State<NotificationPage> createState() => _NotificationPageState();
 }
@@ -315,7 +315,7 @@ class _NotificationPageState extends State<NotificationPage> {
                   style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.bold,
                       color: Colors.grey.shade500, letterSpacing: 0.5)),
             ),
-            ...entry.value.map((item) => _buildCard(item)).toList(),
+            ...entry.value.map((item) => _buildCard(item)),
             const SizedBox(height: 8),
           ],
         )).toList(),

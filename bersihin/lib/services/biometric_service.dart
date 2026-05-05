@@ -20,7 +20,7 @@ class BiometricService {
   // ── Cek apakah device support biometrik ─────────────────────
   static Future<bool> isAvailable() async {
     try {
-      final canCheck   = await _auth.canCheckBiometrics;
+      final canCheck    = await _auth.canCheckBiometrics;
       final isSupported = await _auth.isDeviceSupported();
       return canCheck && isSupported;
     } catch (_) {
@@ -52,8 +52,6 @@ class BiometricService {
     required String password,
   }) async {
     if (email.isEmpty) return false;
-    // password boleh kosong — biometrik tetap bisa diaktifkan
-    // password hanya dipakai untuk auto-login setelah scan sidik jari
     try {
       final authenticated = await _auth.authenticate(
         localizedReason:
@@ -66,7 +64,6 @@ class BiometricService {
       if (authenticated) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool(_keyEnabled(email), true);
-        // Simpan password jika ada, jika tidak simpan string kosong
         await prefs.setString(_keyPassword(email), password);
         final emails = prefs.getStringList(_keyRegisteredEmails) ?? [];
         if (!emails.contains(email)) {
@@ -81,10 +78,8 @@ class BiometricService {
   }
 
   // ── Autentikasi biometrik → kembalikan kredensial akun ───────
-  // Mencari akun mana yang terdaftar dan mengembalikan kredensialnya
   static Future<Map<String, String>?> authenticate() async {
     try {
-      // Cek dulu ada akun yang terdaftar
       final prefs  = await SharedPreferences.getInstance();
       final emails = prefs.getStringList(_keyRegisteredEmails) ?? [];
       final activeEmails = emails
@@ -93,11 +88,10 @@ class BiometricService {
 
       if (activeEmails.isEmpty) return null;
 
-      // Minta autentikasi biometrik sekali
       final authenticated = await _auth.authenticate(
         localizedReason: 'Gunakan sidik jari atau wajah untuk masuk ke Bersih.In',
         options: const AuthenticationOptions(
-          biometricOnly: false, // fallback ke PIN device
+          biometricOnly: false,
           stickyAuth: true,
         ),
       );
@@ -111,7 +105,7 @@ class BiometricService {
 
       if (userEmails.isEmpty) return null;
 
-      // Selalu kembalikan format multi-akun agar caller menampilkan dialog pilih akun
+      // Selalu kembalikan format multi-akun agar dialog pilih akun selalu muncul
       return {
         'multi': 'true',
         'emails': userEmails.join(','),
@@ -132,7 +126,6 @@ class BiometricService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyEnabled(email), false);
     await prefs.remove(_keyPassword(email));
-    // Hapus dari list global
     final emails = prefs.getStringList(_keyRegisteredEmails) ?? [];
     emails.remove(email);
     await prefs.setStringList(_keyRegisteredEmails, emails);
@@ -147,14 +140,5 @@ class BiometricService {
     if (!enabled) return;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyPassword(email), newPassword);
-  }
-
-  // ── Daftar semua email yang punya biometrik aktif ────────────
-  static Future<List<String>> getRegisteredAccounts() async {
-    final prefs  = await SharedPreferences.getInstance();
-    final emails = prefs.getStringList(_keyRegisteredEmails) ?? [];
-    return emails
-        .where((e) => prefs.getBool(_keyEnabled(e)) == true)
-        .toList();
   }
 }

@@ -17,7 +17,7 @@ void main() async {
 }
 
 class BersihInApp extends StatelessWidget {
-  const BersihInApp({Key? key}) : super(key: key);
+  const BersihInApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +48,7 @@ class _AppRootState extends State<_AppRoot> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      // Request permission notifikasi — wajib di Android 13+ (API 33+)
+      // Minta izin notifikasi — diperlukan di Android 13+ (API 33+)
       await NotificationService().requestPermission();
 
       // Jadwalkan notifikasi promosi untuk guest (belum login)

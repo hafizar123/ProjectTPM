@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/auth_service.dart';
 
 class LiveChatPage extends StatefulWidget {
-  const LiveChatPage({Key? key}) : super(key: key);
+  const LiveChatPage({super.key});
   @override
   State<LiveChatPage> createState() => _LiveChatPageState();
 }
@@ -692,7 +692,7 @@ class _LiveChatPageState extends State<LiveChatPage> {
 
 // ── Admin Chat Room List ──────────────────────────────────────
 class AdminChatPage extends StatefulWidget {
-  const AdminChatPage({Key? key}) : super(key: key);
+  const AdminChatPage({super.key});
   @override
   State<AdminChatPage> createState() => _AdminChatPageState();
 }
@@ -788,7 +788,7 @@ class _AdminChatPageState extends State<AdminChatPage> {
 // ── Admin Chat Room (balas pesan user) ───────────────────────
 class AdminChatRoomPage extends StatefulWidget {
   final String userEmail;
-  const AdminChatRoomPage({Key? key, required this.userEmail}) : super(key: key);
+  const AdminChatRoomPage({super.key, required this.userEmail});
   @override
   State<AdminChatRoomPage> createState() => _AdminChatRoomPageState();
 }
@@ -819,10 +819,14 @@ class _AdminChatRoomPageState extends State<AdminChatRoomPage> {
       final msgs = res['body']['data'] as List? ?? [];
       final wasAtBottom = !_scroll.hasClients || _scroll.position.pixels >= _scroll.position.maxScrollExtent - 80;
       setState(() => _messages = msgs);
-      if (wasAtBottom) Future.delayed(const Duration(milliseconds: 100), () {
-        if (_scroll.hasClients) _scroll.animateTo(_scroll.position.maxScrollExtent,
+      if (wasAtBottom) {
+        Future.delayed(const Duration(milliseconds: 100), () {
+        if (_scroll.hasClients) {
+          _scroll.animateTo(_scroll.position.maxScrollExtent,
             duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+        }
       });
+      }
     }
   }
 

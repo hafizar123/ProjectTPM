@@ -18,7 +18,7 @@ class DirtSpot {
 
 // ── Halaman Mini Game ────────────────────────────────────────
 class MiniGamePage extends StatefulWidget {
-  const MiniGamePage({Key? key}) : super(key: key);
+  const MiniGamePage({super.key});
   @override
   State<MiniGamePage> createState() => _MiniGamePageState();
 }
@@ -249,7 +249,7 @@ class _MiniGamePageState extends State<MiniGamePage> with TickerProviderStateMix
           // Ikon animasi
           AnimatedBuilder(
             animation: _pulseAnim,
-            builder: (_, __) => Transform.scale(
+            builder: (_, _) => Transform.scale(
               scale: 1.0 + _pulseAnim.value * 0.08,
               child: Container(
                 width: 120, height: 120,
@@ -418,7 +418,7 @@ class _MiniGamePageState extends State<MiniGamePage> with TickerProviderStateMix
   Widget _buildBroom(double w, double h) {
     return AnimatedBuilder(
       animation: _broomAnim,
-      builder: (_, __) {
+      builder: (_, _) {
         final shake = sin(_broomAnim.value * pi * 4) * 4;
         return Positioned(
           left: _broomX * w - 28,

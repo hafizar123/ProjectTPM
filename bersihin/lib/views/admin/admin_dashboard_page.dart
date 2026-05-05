@@ -8,7 +8,7 @@ import '../auth/login_page.dart';
 import '../support/live_chat_page.dart';
 
 class AdminDashboardPage extends StatefulWidget {
-  const AdminDashboardPage({Key? key}) : super(key: key);
+  const AdminDashboardPage({super.key});
   @override
   _AdminDashboardPageState createState() => _AdminDashboardPageState();
 }
@@ -47,8 +47,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
   Future<void> _updateStatus(int orderId, String currentStatus) async {
     String nextStatus = '';
-    if (currentStatus == 'menunggu_konfirmasi') nextStatus = 'pengerjaan';
-    else if (currentStatus == 'pengerjaan')     nextStatus = 'selesai';
+    if (currentStatus == 'menunggu_konfirmasi') {
+      nextStatus = 'pengerjaan';
+    } else if (currentStatus == 'pengerjaan')     nextStatus = 'selesai';
     else return;
 
     final response = await _authService.updateOrderStatus(orderId, nextStatus);
@@ -57,8 +58,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       final order = _allOrders.firstWhere((o) => o['id'] == orderId, orElse: () => null);
       if (order != null) {
         final svc = order['service_name'] as String? ?? 'Layanan';
-        if (nextStatus == 'pengerjaan') await NotificationService().showOrderConfirmed(svc);
-        else if (nextStatus == 'selesai') await NotificationService().showOrderDone(svc);
+        if (nextStatus == 'pengerjaan') {
+          await NotificationService().showOrderConfirmed(svc);
+        } else if (nextStatus == 'selesai') await NotificationService().showOrderDone(svc);
       }
       _fetchDashboardData();
     } else {
@@ -159,9 +161,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text('Dashboard Admin',
                           style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13)),
-                      Text('Bersih.In',
-                          style: GoogleFonts.outfit(color: Colors.white, fontSize: 22,
-                              fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+                      Image.asset(
+                        'assets/images/logo_bersihin.png',
+                        height: 24,
+                        fit: BoxFit.contain,
+                      ),
                     ]),
                     Container(
                       padding: const EdgeInsets.all(10),
@@ -448,8 +452,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     final color      = _statusColor(status);
     final label      = _statusLabel(status);
     String btnText   = '';
-    if (status == 'menunggu_konfirmasi') btnText = 'KONFIRMASI BAYAR';
-    else if (status == 'pengerjaan')     btnText = 'SELESAIKAN PESANAN';
+    if (status == 'menunggu_konfirmasi') {
+      btnText = 'KONFIRMASI BAYAR';
+    } else if (status == 'pengerjaan')     btnText = 'SELESAIKAN PESANAN';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),

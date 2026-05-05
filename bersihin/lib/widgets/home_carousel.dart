@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../services/auth_service.dart';
+import '../services/auth_service.dart';
+import '../views/home/order_reviews_page.dart';
 
 // ── Carousel dua slide: Info App + Apa Kata Orang ────────────
 class HomeCarousel extends StatefulWidget {
-  const HomeCarousel({Key? key}) : super(key: key);
+  const HomeCarousel({super.key});
   @override
   State<HomeCarousel> createState() => _HomeCarouselState();
 }
@@ -54,8 +55,51 @@ class _HomeCarouselState extends State<HomeCarousel> {
 }
 
 // ── Slide 1: Info Aplikasi ────────────────────────────────────
-class _SlideInfoApp extends StatelessWidget {
+class _SlideInfoApp extends StatefulWidget {
   const _SlideInfoApp();
+  @override
+  State<_SlideInfoApp> createState() => _SlideInfoAppState();
+}
+
+class _SlideInfoAppState extends State<_SlideInfoApp> {
+  final AuthService _svc = AuthService();
+  String _avgRating = '...';
+  int _totalReviews = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRating();
+  }
+
+  Future<void> _loadRating() async {
+    final res = await _svc.getAllOrderReviews();
+    if (!mounted) return;
+    if (res['statusCode'] == 200) {
+      final body = res['body'];
+      List<dynamic> list = [];
+      if (body is Map) {
+        list = (body['data'] ?? body['reviews'] ?? body['result'] ?? []) as List;
+      } else if (body is List) {
+        list = body;
+      }
+      if (list.isNotEmpty) {
+        final sum = list.fold<double>(0, (acc, r) =>
+            acc + (double.tryParse(r['rating']?.toString() ?? '0') ?? 0));
+        final avg = sum / list.length;
+        if (mounted) {
+          setState(() {
+            _avgRating = avg.toStringAsFixed(1);
+            _totalReviews = list.length;
+          });
+        }
+      } else {
+        if (mounted) setState(() => _avgRating = '-');
+      }
+    } else {
+      if (mounted) setState(() => _avgRating = '-');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -63,89 +107,127 @@ class _SlideInfoApp extends StatelessWidget {
     const toscaMedium = Color(0xFF00909E);
     const toscaLight  = Color(0xFF48C9B0);
 
-    return Container(
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const OrderReviewsPage()),
+      ),
+      child: Container(
       margin: const EdgeInsets.symmetric(horizontal: 2),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [toscaDark, Color(0xFF0F2027)],
+          colors: [Color(0xFF012E2B), toscaDark, Color(0xFF014D49)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
-          BoxShadow(color: toscaDark.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 8)),
+          BoxShadow(color: toscaDark.withOpacity(0.4), blurRadius: 24, offset: const Offset(0, 10)),
         ],
       ),
       child: Stack(children: [
-        // Dekorasi lingkaran
-        Positioned(right: -30, top: -30,
-          child: Container(width: 130, height: 130,
-            decoration: BoxDecoration(shape: BoxShape.circle, color: toscaLight.withOpacity(0.08)))),
-        Positioned(left: -20, bottom: -20,
-          child: Container(width: 90, height: 90,
-            decoration: BoxDecoration(shape: BoxShape.circle, color: toscaMedium.withOpacity(0.1)))),
+        Positioned(right: -40, top: -40,
+          child: Container(width: 160, height: 160,
+            decoration: BoxDecoration(shape: BoxShape.circle,
+              color: toscaLight.withOpacity(0.07)))),
+        Positioned(left: -25, bottom: -25,
+          child: Container(width: 100, height: 100,
+            decoration: BoxDecoration(shape: BoxShape.circle,
+              color: toscaMedium.withOpacity(0.1)))),
+        Positioned(left: 0, right: 0, bottom: 0,
+          child: Container(
+            height: 3,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: [toscaLight, toscaMedium, Colors.transparent]),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(24),
+                bottomRight: Radius.circular(24),
+              ),
+            ),
+          )),
 
         Padding(
-          padding: const EdgeInsets.all(22),
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               // Badge
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: toscaLight.withOpacity(0.2),
+                  color: toscaLight.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: toscaLight.withOpacity(0.3)),
                 ),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.verified_rounded, color: toscaLight, size: 13),
+                  const Icon(Icons.verified_rounded, color: toscaLight, size: 12),
                   const SizedBox(width: 5),
                   Text('Layanan Terpercaya', style: GoogleFonts.outfit(
-                      color: toscaLight, fontSize: 11, fontWeight: FontWeight.bold)),
+                      color: toscaLight, fontSize: 10, fontWeight: FontWeight.bold)),
                 ]),
               ),
-
-              // Judul & deskripsi
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Bersih.In', style: GoogleFonts.outfit(
-                    color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
-                const SizedBox(height: 4),
-                Text('Solusi kebersihan & perawatan hunian\nprofesional, cepat, dan terpercaya.',
-                    style: GoogleFonts.outfit(color: Colors.white70, fontSize: 12, height: 1.4)),
-              ]),
-
-              // Stats row
-              Row(children: [
-                _statChip(Icons.star_rounded, '4.9', 'Rating'),
-                const SizedBox(width: 10),
-                _statChip(Icons.people_rounded, '10K+', 'Pengguna'),
-                const SizedBox(width: 10),
-                _statChip(Icons.cleaning_services_rounded, '8', 'Layanan'),
-              ]),
+              // Logo + deskripsi
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Image.asset(
+                    'assets/images/logo_bersihin.png',
+                    height: 55,
+                    fit: BoxFit.contain,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text('Solusi kebersihan & perawatan hunian profesional & terpercaya.',
+                        style: GoogleFonts.outfit(
+                            color: Colors.white60, fontSize: 11, height: 1.4)),
+                  ),
+                ],
+              ),
+              // Stats row + hint tap
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(children: [
+                    _statChip(Icons.star_rounded, _avgRating, 'Rating'),
+                    const SizedBox(width: 8),
+                    _statChip(Icons.rate_review_rounded, '$_totalReviews', 'Ulasan'),
+                    const SizedBox(width: 8),
+                    _statChip(Icons.cleaning_services_rounded, '8', 'Layanan'),
+                  ]),
+                  const SizedBox(height: 8),
+                  Row(children: [
+                    const Icon(Icons.touch_app_rounded, color: toscaLight, size: 12),
+                    const SizedBox(width: 4),
+                    Text('Ketuk untuk lihat ulasan pengguna',
+                        style: GoogleFonts.outfit(
+                            color: toscaLight.withOpacity(0.7), fontSize: 10)),
+                  ]),
+                ],
+              ),
             ],
           ),
         ),
       ]),
-    );
+    ), // tutup Container
+    ); // tutup GestureDetector
   }
 
   Widget _statChip(IconData icon, String value, String label) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: Colors.white.withOpacity(0.08),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.white.withOpacity(0.15)),
+        border: Border.all(color: Colors.white.withOpacity(0.12)),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, color: const Color(0xFF48C9B0), size: 14),
-        const SizedBox(width: 5),
+        Icon(icon, color: const Color(0xFF48C9B0), size: 13),
+        const SizedBox(width: 4),
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(value, style: GoogleFonts.outfit(
-              color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-          Text(label, style: GoogleFonts.outfit(color: Colors.white54, fontSize: 9)),
+              color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+          Text(label, style: GoogleFonts.outfit(color: Colors.white38, fontSize: 9)),
         ]),
       ]),
     );
@@ -253,7 +335,7 @@ class _SlideApaKataOrangState extends State<_SlideApaKataOrang> {
               child: const Icon(Icons.format_quote_rounded, color: Colors.white, size: 16),
             ),
             const SizedBox(width: 10),
-            Text('Apa Kata Orang', style: GoogleFonts.outfit(
+            Text('Apa Kata Orang Tentang TPM', style: GoogleFonts.outfit(
                 fontWeight: FontWeight.bold, fontSize: 15, color: toscaDark)),
             const Spacer(),
             if (!_loading)

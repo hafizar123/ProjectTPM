@@ -28,7 +28,7 @@ class WaitingPaymentPage extends StatefulWidget {
   final double? totalConverted;  // nilai total dalam mata uang asing
 
   const WaitingPaymentPage({
-    Key? key,
+    super.key,
     required this.orderId,
     required this.totalAmount,
     required this.paymentMethod,
@@ -42,7 +42,7 @@ class WaitingPaymentPage extends StatefulWidget {
     this.transactionTime,
     this.currency,
     this.totalConverted,
-  }) : super(key: key);
+  });
 
   @override
   _WaitingPaymentPageState createState() => _WaitingPaymentPageState();
@@ -79,7 +79,7 @@ class _WaitingPaymentPageState extends State<WaitingPaymentPage> {
   void initState() {
     super.initState();
     _currentStatus = widget.initialStatus;
-    // Pakai nilai dari parameter dulu jika ada
+    // Gunakan nilai dari parameter terlebih dahulu jika tersedia
     _currency       = widget.currency ?? 'IDR';
     _totalConverted = widget.totalConverted;
 
@@ -475,7 +475,7 @@ class _WaitingPaymentPageState extends State<WaitingPaymentPage> {
     );
   }
 
-  // ZHANGG! Fungsi sakti buat bablas ke Home pak!
+  // Fungsi utama buat langsung ke Home !
   void _backToHome() {
     Navigator.pushAndRemoveUntil(
       context,
@@ -494,10 +494,10 @@ class _WaitingPaymentPageState extends State<WaitingPaymentPage> {
         : CurrencyService.formatFromIdr(widget.totalAmount, 'IDR');
     
     return PopScope(
-      canPop: false, // Konci rapet Mon!
+      canPop: false, // kunci rapat !
       onPopInvoked: (bool didPop) {
         if (didPop) return;
-        _backToHome(); // Kalo tombol back hape dipencet, langsung tebas ke Home!
+        _backToHome(); // jika tombol back hape dipencet, langsung arahkan ke Home!
       },
       child: Scaffold(
         backgroundColor: Colors.grey.shade50,

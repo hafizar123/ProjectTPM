@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'payment_page.dart';
@@ -100,7 +100,7 @@ class LayananCatalog {
 }
 
 // ============================================================
-// HALAMAN ORDER DINAMIS — SEMUA LAYANAN
+// HALAMAN ORDER DINAMIS � SEMUA LAYANAN
 // ============================================================
 class OrderLayananPage extends StatefulWidget {
   final String namaLayanan;
@@ -109,12 +109,12 @@ class OrderLayananPage extends StatefulWidget {
   final String? patokan;
 
   const OrderLayananPage({
-    Key? key,
+    super.key,
     required this.namaLayanan,
     this.address,
     this.houseType,
     this.patokan,
-  }) : super(key: key);
+  });
 
   @override
   State<OrderLayananPage> createState() => _OrderLayananPageState();
@@ -314,7 +314,7 @@ class _OrderLayananPageState extends State<OrderLayananPage> {
                 ),
               ),
               const SizedBox(height: 24),
-              Text('Waktu (07:00 – 21:00)',
+              Text('Waktu (07:00 � 21:00)',
                   style: GoogleFonts.outfit(
                       fontWeight: FontWeight.w600,
                       color: Colors.grey.shade500,
@@ -439,7 +439,7 @@ class _OrderLayananPageState extends State<OrderLayananPage> {
   Widget build(BuildContext context) {
     final currentPrice = _options[_selectedOption]['price'] as int;
     final combinedSchedule = (_pickedDate != null && _pickedTime != null)
-        ? '${_pickedDate!.day} ${_getBulan(_pickedDate!.month)} ${_pickedDate!.year} • $_pickedTime WIB'
+        ? '${_pickedDate!.day} ${_getBulan(_pickedDate!.month)} ${_pickedDate!.year} � $_pickedTime WIB'
         : 'Pilih Tanggal & Waktu';
 
     return Scaffold(
@@ -447,7 +447,7 @@ class _OrderLayananPageState extends State<OrderLayananPage> {
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          // ── HEADER ──────────────────────────────────────
+          // -- HEADER --------------------------------------
           SliverAppBar(
             expandedHeight: 230.0,
             pinned: true,
@@ -538,7 +538,7 @@ class _OrderLayananPageState extends State<OrderLayananPage> {
             ),
           ),
 
-          // ── BODY ────────────────────────────────────────
+          // -- BODY ----------------------------------------
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(22, 28, 22, 0),
@@ -651,7 +651,7 @@ class _OrderLayananPageState extends State<OrderLayananPage> {
         ],
       ),
 
-      // ── BOTTOM BAR ──────────────────────────────────────
+      // -- BOTTOM BAR --------------------------------------
       bottomSheet: Container(
         padding: const EdgeInsets.fromLTRB(22, 16, 22, 0),
         decoration: BoxDecoration(
@@ -704,7 +704,7 @@ class _OrderLayananPageState extends State<OrderLayananPage> {
                       MaterialPageRoute(
                         builder: (_) => PaymentPage(
                           serviceName:
-                              '${widget.namaLayanan} – ${_options[_selectedOption]['title']}',
+                              '${widget.namaLayanan} � ${_options[_selectedOption]['title']}',
                           price: currentPrice,
                           date:
                               '${_pickedDate!.day} ${_getBulan(_pickedDate!.month)} ${_pickedDate!.year}',

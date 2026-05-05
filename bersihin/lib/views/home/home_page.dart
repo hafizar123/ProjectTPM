@@ -10,12 +10,11 @@ import '../../widgets/custom_navbar.dart';
 import '../../widgets/home_carousel.dart';
 import '../order/service_detail_page.dart';
 import '../order/order_layanan_page.dart';
-import '../about/about_us_page.dart';
 import '../support/mini_game_page.dart';
 
 class HomePage extends StatefulWidget {
   final String? username;
-  const HomePage({Key? key, this.username}) : super(key: key);
+  const HomePage({super.key, this.username});
 
   @override
   _HomePageState createState() => _HomePageState();
@@ -28,24 +27,24 @@ class _HomePageState extends State<HomePage> {
   String _username = 'Tamu';
   bool _isGuest = true;
   
-  // ZHANGG! Variabel buat Jam Futuristik lu Mon!
+  // Variabel untuk jam real-time
   Timer? _clockTimer;
   DateTime _currentTime = DateTime.now();
-  String _selectedZone = 'WIB'; // Default awalnye WIB pak
+  String _selectedZone = 'WIB'; // Default zona waktu: WIB
   
-  // Peta waktu sakti buat konversi offset dari UTC
+  // Peta zona waktu untuk konversi offset dari UTC
   final Map<String, int> _timeZones = {
     'WIB': 7,
     'WITA': 8,
     'WIT': 9,
-    'London': 1, // Asumsi pake British Summer Time (BST)
+    'London': 1, // Asumsi menggunakan British Summer Time (BST)
   };
 
   final Color toscaDark = const Color(0xFF025955);
   final Color toscaMedium = const Color(0xFF00909E);
   final Color toscaLight = const Color(0xFF48C9B0);
 
-  // ── Shake detection ──────────────────────────────────────────
+  // -- Shake detection ------------------------------------------
   StreamSubscription<AccelerometerEvent>? _accelSub;
   double _prevAccelMag = 0;
   bool _shakeOverlayShown = false;
@@ -57,7 +56,7 @@ class _HomePageState extends State<HomePage> {
     _loadHomeData();
     _startShakeDetection();
 
-    // Setup Timer biar detiknya jalan terus pak!
+    // Inisialisasi timer agar jam berjalan setiap detik
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) {
         setState(() {
@@ -81,14 +80,14 @@ class _HomePageState extends State<HomePage> {
     final prefs = await SharedPreferences.getInstance();
     final savedEmail = prefs.getString('saved_email') ?? "";
     
-    // ZHANGG! Kita tarik zona waktu terakhir yang disimpen pak!
+    // Ambil zona waktu terakhir yang tersimpan
     final savedZone = prefs.getString('zona_waktu') ?? 'WIB';
 
     if (savedEmail.isNotEmpty) {
       setState(() {
         _isGuest = false;
         _username = prefs.getString('saved_username') ?? "Pengguna";
-        _selectedZone = savedZone; // Otomatis nampilin zona terakhir
+        _selectedZone = savedZone; // Terapkan zona waktu terakhir yang tersimpan
       });
       
       final response = await _authService.getProfile(savedEmail);
@@ -203,7 +202,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // ── Shake detection: kocok HP di home → masuk mini game ─────
+  // ── Deteksi guncangan: guncang perangkat di beranda untuk masuk mini game ──
   void _startShakeDetection() {
     _accelSub?.cancel();
     _accelSub = accelerometerEventStream().listen((event) {
@@ -228,7 +227,7 @@ class _HomePageState extends State<HomePage> {
         final curved = CurvedAnimation(parent: anim, curve: Curves.elasticOut);
         return ScaleTransition(scale: curved, child: child);
       },
-      pageBuilder: (ctx, _, __) => _ShakeOverlay(
+      pageBuilder: (ctx, _, _) => _ShakeOverlay(
         toscaDark: toscaDark,
         toscaMedium: toscaMedium,
         toscaLight: toscaLight,
@@ -238,7 +237,7 @@ class _HomePageState extends State<HomePage> {
             context,
             PageRouteBuilder(
               pageBuilder: (_, a1, a2) => const MiniGamePage(),
-              transitionsBuilder: (_, a1, __, child) =>
+              transitionsBuilder: (_, a1, _, child) =>
                   FadeTransition(opacity: a1, child: child),
               transitionDuration: const Duration(milliseconds: 300),
             ),
@@ -272,7 +271,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   // =================================================================
-  // WIDGET JAM KONVERSI — ELEGAN & FUTURISTIK
+  // WIDGET JAM KONVERSI � ELEGAN & modern
   // =================================================================
   Widget _buildRealTimeClock() {
     final utcTime = _currentTime.toUtc();
@@ -529,7 +528,7 @@ class _HomePageState extends State<HomePage> {
 
                     // Carousel: Info App + Apa Kata Orang
                     const HomeCarousel(),
-                    const SizedBox(height: 25),
+                    const SizedBox(height: 10),
 
                     if (_isGuest)
                       Container(
@@ -572,8 +571,8 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ]),
                       ),
-                    const SizedBox(height: 28),
-                    // ── Hint shake mini game ─────────────────────────
+                    const SizedBox(height: 12),
+                    // -- Hint shake mini game -------------------------
                     Container(
                       width: double.infinity,
                       margin: const EdgeInsets.only(bottom: 20),
@@ -618,7 +617,7 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ]),
                     ),
-                    // ── Section header Layanan Kami ──────────────────
+                    // -- Section header Layanan Kami ------------------
                     Row(children: [
                       Container(
                         width: 4, height: 20,
@@ -662,7 +661,7 @@ class _HomePageState extends State<HomePage> {
                             MaterialPageRoute(
                               builder: (context) => ServiceDetailPage(
                                 title: 'Layanan Pemanas Air',
-                                imagePath: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=2070&auto=format&fit=crop', 
+                                imagePath: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=2070&auto=format&fit=crop',
                                 description: 'BersihIn menyediakan solusi teknis profesional untuk perawatan dan perbaikan sistem pemanas air Anda guna menjamin ketersediaan air hangat yang stabil dan efisien di hunian Anda.',
                                 targetOrderPage: OrderLayananPage(namaLayanan: 'Pemanas Air'),
                                 benefits: const [
@@ -679,7 +678,7 @@ class _HomePageState extends State<HomePage> {
                             title: 'Reguler Cleaning',
                             imagePath: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?q=80&w=2070&auto=format&fit=crop',
                             description: 'Layanan kebersihan harian dengan standar hotel bintang 5. Tim BersihIn akan menyulap hunian Anda menjadi zona nyaman yang higienis.',
-                            targetOrderPage: OrderLayananPage(namaLayanan: 'Reguler Cleaning'), // Sementare numpang dulu Mon!
+                            targetOrderPage: OrderLayananPage(namaLayanan: 'Reguler Cleaning'),
                             benefits: const [
                               {'icon': Icons.schedule_rounded, 'title': 'Waktu Fleksibel', 'desc': 'Atur jadwal kedatangan teknisi kebersihan sesuai ritme aktivitas harian Anda.'},
                               {'icon': Icons.eco_rounded, 'title': 'Eco-Friendly', 'desc': 'Menggunakan cairan pembersih ramah lingkungan yang aman bagi keluarga.'},
@@ -707,7 +706,7 @@ class _HomePageState extends State<HomePage> {
                             description: 'Kasur bersih, bebas tungau, dan wangi segar. Layanan cuci kasur profesional dengan teknologi steam cleaning yang aman untuk semua jenis kasur.',
                             targetOrderPage: OrderLayananPage(namaLayanan: 'Cuci Kasur'),
                             benefits: const [
-                              {'icon': Icons.bug_report_rounded, 'title': 'Basmi Tungau', 'desc': 'Steam cleaning 100°C membunuh tungau dan bakteri penyebab alergi secara efektif.'},
+                              {'icon': Icons.bug_report_rounded, 'title': 'Basmi Tungau', 'desc': 'Steam cleaning 100�C membunuh tungau dan bakteri penyebab alergi secara efektif.'},
                               {'icon': Icons.air_rounded, 'title': 'Wangi Tahan Lama', 'desc': 'Menggunakan pewangi khusus kasur yang aman dan tahan lama hingga berminggu-minggu.'},
                               {'icon': Icons.health_and_safety_rounded, 'title': 'Tidur Lebih Sehat', 'desc': 'Kasur bersih meningkatkan kualitas tidur dan mengurangi risiko gangguan pernapasan.'},
                             ],
@@ -769,72 +768,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                     const SizedBox(height: 8),
 
-                    // ── Tentang Bersih.In — card klik ke About Us ───
-                    GestureDetector(
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const AboutUsPage()),
-                      ),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: toscaLight.withOpacity(0.3), width: 1.5),
-                          boxShadow: [
-                            BoxShadow(
-                                color: toscaMedium.withOpacity(0.08),
-                                blurRadius: 16,
-                                offset: const Offset(0, 6)),
-                          ],
-                        ),
-                        child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-                          // Ikon kiri
-                          Container(
-                            width: 56, height: 56,
-                            decoration: BoxDecoration(
-                              color: toscaLight.withOpacity(0.12),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: toscaLight.withOpacity(0.3)),
-                            ),
-                            child: Icon(Icons.info_outline_rounded, color: toscaDark, size: 26),
-                          ),
-                          const SizedBox(width: 16),
-                          // Teks tengah
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Tentang Bersih.In',
-                                    style: GoogleFonts.outfit(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.bold,
-                                        color: toscaDark)),
-                                const SizedBox(height: 3),
-                                Text('Kenali lebih jauh visi, misi, dan tim di balik layanan kami.',
-                                    style: GoogleFonts.outfit(
-                                        fontSize: 12,
-                                        color: Colors.grey.shade500,
-                                        height: 1.4)),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          // Panah kanan
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: toscaDark,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(Icons.arrow_forward_rounded,
-                                color: Colors.white, size: 16),
-                          ),
-                        ]),
-                      ),
-                    ),
-                    const SizedBox(height: 100),
+const SizedBox(height: 100),
                   ],
                 ),
               ),
@@ -883,7 +817,7 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-// ── Overlay animasi saat shake terdeteksi ────────────────────
+// -- Overlay animasi saat shake terdeteksi --------------------
 class _ShakeOverlay extends StatefulWidget {
   final Color toscaDark;
   final Color toscaMedium;
@@ -960,7 +894,7 @@ class _ShakeOverlayState extends State<_ShakeOverlay>
             // Ikon berputar + pulse
             AnimatedBuilder(
               animation: Listenable.merge([_pulseAnim, _rotateCtrl]),
-              builder: (_, __) => Transform.scale(
+              builder: (_, _) => Transform.scale(
                 scale: _pulseAnim.value,
                 child: Stack(alignment: Alignment.center, children: [
                   // Lingkaran luar berputar

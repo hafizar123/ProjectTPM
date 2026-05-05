@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../controllers/auth_controller.dart';
+import '../../services/auth_service.dart';
 import '../../services/biometric_service.dart';
 import '../../services/notification_service.dart';
 import '../home/home_page.dart';
@@ -9,7 +11,7 @@ import '../admin/admin_dashboard_page.dart';
 import 'register_page.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({Key? key}) : super(key: key);
+  const LoginPage({super.key});
 
   @override
   _LoginPageState createState() => _LoginPageState();
@@ -42,10 +44,8 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _handleBiometricLogin() async {
-    // Cek apakah ada akun yang sudah daftarkan biometrik
     final hasAny = await BiometricService.hasAnyRegistered();
     if (!hasAny) {
-      // Belum ada akun terdaftar — arahkan ke Settings
       _showBiometricNotRegisteredDialog();
       return;
     }
@@ -56,26 +56,20 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    // Selalu tampilkan dialog pilih akun setelah fingerprint berhasil
+    // Tampilkan dialog pilih akun
     final emails = result['emails']!.split(',');
     final chosen = await _showAccountPickerDialog(emails);
     if (chosen == null) return;
-    final password = await BiometricService.getPasswordForAccount(chosen);
-    if (password == null || password.isEmpty) {
-      _showNotif('Data akun tidak ditemukan', isError: true);
-      return;
-    }
-    await _loginWithCredentials(chosen, password);
-  }
 
-  Future<void> _loginWithCredentials(String email, String password) async {
+    // Login langsung ke server pakai email — tanpa password
     setState(() => _isLoading = true);
-    final response = await _authController.login(email, password);
+    final authService = AuthService();
+    final response = await authService.biometricLogin(chosen);
     setState(() => _isLoading = false);
+
     if (response['statusCode'] == 200) {
-      // Gunakan email dari response server
-      final returnedEmail = response['body']['user']?['email'] ?? email;
-      final returnedUsername = response['body']['user']?['username'] ?? response['body']['username'] ?? '';
+      final returnedEmail    = response['body']['user']?['email']    ?? chosen;
+      final returnedUsername = response['body']['user']?['username'] ?? '';
       await _authController.saveSession(returnedEmail, returnedUsername);
       await NotificationService().cancelGuestNotifications();
       if (!mounted) return;
@@ -272,6 +266,9 @@ class _LoginPageState extends State<LoginPage> {
         final returnedEmail = response['body']['user']?['email'] ?? inputText;
         final returnedUsername = response['body']['user']?['username'] ?? response['body']['username'] ?? '';
         await _authController.saveSession(returnedEmail, returnedUsername);
+        // Simpan password untuk keperluan biometrik
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('saved_password', inputPassword);
         // Batalkan notifikasi guest karena sudah login
         await NotificationService().cancelGuestNotifications();
         if (!mounted) return;
@@ -320,17 +317,14 @@ class _LoginPageState extends State<LoginPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const SizedBox(height: 100),
-                    Text(
-                      'Bersih.In',
-                  style: GoogleFonts.outfit(
-                    fontSize: 42,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                    letterSpacing: -1,
-                  ),
-                ),
-                const SizedBox(height: 8),
+                    const SizedBox(height: 80),
+                    // Logo Bersih.In
+                    Image.asset(
+                      'assets/images/logo_bersihin.png',
+                      height: 220,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(height: 8),
                 Text(
                   'Masuk ke akun Anda',
                   style: GoogleFonts.outfit(color: Colors.white70, fontSize: 15),
@@ -498,7 +492,7 @@ class _LoginPageState extends State<LoginPage> {
                   Navigator.pushAndRemoveUntil(
                     context,
                     PageRouteBuilder(
-                      pageBuilder: (_, __, ___) => const HomePage(),
+                      pageBuilder: (_, _, _) => const HomePage(),
                       transitionDuration: Duration.zero,
                       reverseTransitionDuration: Duration.zero,
                     ),

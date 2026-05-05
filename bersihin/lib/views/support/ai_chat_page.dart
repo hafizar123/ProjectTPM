@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../services/ai_service.dart';
 
 class AiChatPage extends StatefulWidget {
-  const AiChatPage({Key? key}) : super(key: key);
+  const AiChatPage({super.key});
 
   @override
   _AiChatPageState createState() => _AiChatPageState();
@@ -286,7 +286,7 @@ class _AiChatPageState extends State<AiChatPage> with TickerProviderStateMixin {
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               AnimatedBuilder(
                 animation: _pulseAnim,
-                builder: (_, __) => Row(children: [
+                builder: (_, _) => Row(children: [
                   _dot(0),
                   const SizedBox(width: 4),
                   _dot(1),
@@ -309,7 +309,7 @@ class _AiChatPageState extends State<AiChatPage> with TickerProviderStateMixin {
   Widget _dot(int index) {
     return AnimatedBuilder(
       animation: _pulseCtrl,
-      builder: (_, __) {
+      builder: (_, _) {
         final delay = index * 0.15;
         final val = (((_pulseCtrl.value - delay) % 1.0 + 1.0) % 1.0);
         final opacity = (val < 0.5 ? val * 2 : (1 - val) * 2).clamp(0.3, 1.0);

@@ -9,7 +9,7 @@ import '../../services/biometric_service.dart';
 import '../auth/login_page.dart';
 
 class SettingsPage extends StatefulWidget {
-  const SettingsPage({Key? key}) : super(key: key);
+  const SettingsPage({super.key});
 
   @override
   _SettingsPageState createState() => _SettingsPageState();
@@ -48,10 +48,12 @@ class _SettingsPageState extends State<SettingsPage> {
     final prefs     = await SharedPreferences.getInstance();
     final email     = prefs.getString('saved_email') ?? '';
     final enabled   = await BiometricService.isEnabledForAccount(email);
-    if (mounted) setState(() {
+    if (mounted) {
+      setState(() {
       _biometricAvailable = available;
       _biometricEnabled   = enabled;
     });
+    }
   }
 
   Future<void> _toggleBiometric() async {
@@ -247,7 +249,6 @@ class _SettingsPageState extends State<SettingsPage> {
                               : null,
                         ),
                       ),
-                      // ZHANGG! INI OBAT ERROR BORDER KEMAREN PAK!
                       GestureDetector(
                         onTap: () => _showImagePicker(context),
                         child: Container(
@@ -351,7 +352,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         Switch(
                           value: _biometricEnabled,
                           onChanged: (_) => _toggleBiometric(),
-                          activeColor: toscaDark,
+                          activeThumbColor: toscaDark,
                           activeTrackColor: toscaLight.withOpacity(0.4),
                         ),
                       ]),

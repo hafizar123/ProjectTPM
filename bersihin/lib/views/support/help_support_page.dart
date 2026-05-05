@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'live_chat_page.dart';
+import 'about_page.dart';
 
 class HelpSupportPage extends StatelessWidget {
-  const HelpSupportPage({Key? key}) : super(key: key);
+  const HelpSupportPage({super.key});
 
   final Color toscaDark = const Color(0xFF025955);
   final Color toscaMedium = const Color(0xFF00909E);
@@ -28,7 +29,7 @@ class HelpSupportPage extends StatelessWidget {
         physics: const BouncingScrollPhysics(),
         child: Column(
           children: [
-            // Header Futuristik
+            // Header modern
             Container(
               width: double.infinity,
               padding: const EdgeInsets.only(bottom: 40, left: 25, right: 25, top: 20),
@@ -95,7 +96,134 @@ class HelpSupportPage extends StatelessWidget {
                   _buildFAQItem('Pembayaran melalui apa saja?', 'Bisa menggunakan E-Wallet atau Transfer Bank'),
                   _buildFAQItem('Apakah teknisi kebersihan aman?', 'Semua mitra kami telah melalui seleksi ketat dan bersertifikat profesional'),
                   
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 30),
+
+                  // Tombol Tentang Kami — elegan & futuristik
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutPage()));
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF012E2B), Color(0xFF025955), Color(0xFF014D49)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: toscaDark.withOpacity(0.35),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: Stack(
+                        children: [
+                          // Dekorasi lingkaran kanan atas
+                          Positioned(
+                            right: -20, top: -20,
+                            child: Container(
+                              width: 100, height: 100,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: toscaLight.withOpacity(0.08),
+                              ),
+                            ),
+                          ),
+                          // Dekorasi lingkaran kiri bawah
+                          Positioned(
+                            left: -15, bottom: -15,
+                            child: Container(
+                              width: 70, height: 70,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: toscaMedium.withOpacity(0.1),
+                              ),
+                            ),
+                          ),
+                          // Konten utama
+                          Row(
+                            children: [
+                              // Logo Bersih.In
+                              Container(
+                                width: 60, height: 60,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: Colors.white.withOpacity(0.2)),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Image.asset(
+                                    'assets/images/logo_bersihin.png',
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (_, _, _) => Icon(
+                                      Icons.cleaning_services_rounded,
+                                      color: toscaLight, size: 30,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              // Teks
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: toscaLight.withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: toscaLight.withOpacity(0.3)),
+                                      ),
+                                      child: Text('Tentang Kami',
+                                          style: GoogleFonts.outfit(
+                                              color: toscaLight,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              letterSpacing: 0.5)),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text('Bersih.In',
+                                        style: GoogleFonts.outfit(
+                                            color: Colors.white,
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w900,
+                                            letterSpacing: -0.5)),
+                                    const SizedBox(height: 3),
+                                    Text('Kenali lebih jauh visi, misi, dan tim di balik layanan kami.',
+                                        style: GoogleFonts.outfit(
+                                            color: Colors.white60,
+                                            fontSize: 11,
+                                            height: 1.4)),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              // Tombol panah
+                              Container(
+                                width: 40, height: 40,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.white.withOpacity(0.2)),
+                                ),
+                                child: const Icon(Icons.arrow_forward_rounded,
+                                    color: Colors.white, size: 20),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
                   
                   // Banner Info Tambahan
                   Container(

@@ -7,7 +7,7 @@ import 'location_picker_page.dart';
 class AddressDetailPage extends StatefulWidget {
   final Map<String, dynamic> locationData; 
 
-  const AddressDetailPage({Key? key, required this.locationData}) : super(key: key);
+  const AddressDetailPage({super.key, required this.locationData});
 
   @override
   _AddressDetailPageState createState() => _AddressDetailPageState();
@@ -67,10 +67,10 @@ class _AddressDetailPageState extends State<AddressDetailPage> {
 
     if (response['statusCode'] == 200) {
       if (mounted) {
-        // ZHANGG! INI KUNCIANNYE PAK!
-        // Pop 2x biar balik ke SavedAddressPage bawaan lu yang masih ada targetOrderPage-nye!
+        // INI KUNCIANNYE !
+        // Pop 2x agar balik ke SavedAddressPage bawaan Anda yang masih ada targetOrderPage-nya!
         Navigator.pop(context); // Pop pertama nutup Address Detail
-        Navigator.pop(context, true); // Pop kedua nutup Location Picker & ngirim sinyal true
+        Navigator.pop(context, true); // Pop kedua nutup Location Picker & mengirim sinyal true
       }
     } else {
       _showNotif("Gagal menyimpan detail alamat.");
@@ -153,7 +153,7 @@ class _AddressDetailPageState extends State<AddressDetailPage> {
 
             Text('Tipe Hunian:', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: toscaDark, fontSize: 16)),
             const SizedBox(height: 15),
-            ..._houseTypes.map((type) => _buildRadioTile(type)).toList(),
+            ..._houseTypes.map((type) => _buildRadioTile(type)),
 
             const SizedBox(height: 30),
 

@@ -53,10 +53,10 @@ class AuthController {
 
     // Hapus sesi aktif saja, bukan semua data
     // PENTING: key berikut TIDAK dihapus agar fitur tetap berjalan setelah logout-login:
-    //   - order_created_at_<id>  → countdown timer pembayaran
-    //   - order_currency_<id>    → mata uang yang dipilih saat order
-    //   - order_converted_<id>   → nilai total dalam mata uang asing
-    //   - avatar_cache_<email>   → cache foto profil per-akun
+    // - order_created_at_<id>  → countdown timer pembayaran
+    // - order_currency_<id>    → mata uang yang dipilih saat order
+    // - order_converted_<id>   → nilai total dalam mata uang asing
+    // - avatar_cache_<email>   → cache foto profil per-akun
     await prefs.remove('saved_email');
     await prefs.remove('saved_username');
     await prefs.remove('saved_password');

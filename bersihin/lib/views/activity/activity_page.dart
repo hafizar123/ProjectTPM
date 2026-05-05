@@ -6,7 +6,7 @@ import '../order/waiting_payment_page.dart';
 import '../../widgets/custom_navbar.dart';
 
 class ActivityPage extends StatefulWidget {
-  const ActivityPage({Key? key}) : super(key: key);
+  const ActivityPage({super.key});
 
   @override
   _ActivityPageState createState() => _ActivityPageState();
@@ -43,9 +43,9 @@ class _ActivityPageState extends State<ActivityPage> {
       
       if (mounted) {
         setState(() {
-          // Yang belom kelar masuk kubu Ongoing
+          // Yang belom kelar masuk kelompok Ongoing
           _ongoingOrders = allOrders.where((order) => order['status'] != 'selesai').toList();
-          // Yang udeh beres masuk kubu History
+          // Yang sudah beres masuk kelompok History
           _historyOrders = allOrders.where((order) => order['status'] == 'selesai').toList();
           _isLoading = false;
         });
@@ -68,7 +68,7 @@ class _ActivityPageState extends State<ActivityPage> {
     }
   }
 
-  // Helper benerin format teks status dari DB biar enak dibaca Mon
+  // Helper memperbaiki format teks status dari DB agar enak dibaca
   String _formatStatusText(String rawStatus) {
     switch (rawStatus) {
       case 'menunggu_pembayaran': return 'Menunggu Pembayaran';
@@ -79,14 +79,14 @@ class _ActivityPageState extends State<ActivityPage> {
     }
   }
 
-  // Helper ngasih icon otomatis berdasarin nama layanan pak
+  // Helper memberikan icon otomatis berdasarin nama layanan
   IconData _getIconForService(String serviceName) {
     String lowerName = serviceName.toLowerCase();
     if (lowerName.contains('ac')) return Icons.ac_unit_rounded;
     if (lowerName.contains('sofa')) return Icons.chair_rounded;
     if (lowerName.contains('air') || lowerName.contains('pemanas')) return Icons.water_drop_rounded;
     if (lowerName.contains('deep') || lowerName.contains('rumah')) return Icons.home_rounded;
-    return Icons.cleaning_services_rounded; // Default aje Mon
+    return Icons.cleaning_services_rounded; // Default saja
   }
 
   @override

@@ -2,11 +2,11 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class AuthService {
-  // ZHANGG! Alamat IP lu nongkrong di mari. 
-  // Ganti di sini doang kalo mau ngetes pake WiFi/Hotspot lu ato hape temen lu
-  static const String baseUrl = 'http://172.20.10.4:3000/api';
+  // Alamat IP server berada di sini.
+  // Ganti nilai ini jika ingin menguji menggunakan jaringan WiFi atau perangkat lain.
+  static const String baseUrl = 'http://192.168.18.7:3000/api';
 
-  // LOGIC BUAT DAFTAR
+  // ── PENDAFTARAN AKUN ─────────────────────────────────────────
   Future<Map<String, dynamic>> register(String email, String username, String password) async {
     try {
       final response = await http.post(
@@ -31,7 +31,27 @@ class AuthService {
     }
   }
 
-  // LOGIC BUAT MASUK
+  // Login biometrik — tanpa password, cukup email
+  Future<Map<String, dynamic>> biometricLogin(String email) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/biometric-login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email}),
+      );
+      return {
+        'statusCode': response.statusCode,
+        'body': jsonDecode(response.body),
+      };
+    } catch (e) {
+      return {
+        'statusCode': 500,
+        'body': {'message': 'Terjadi kesalahan pada server'},
+      };
+    }
+  }
+
+  // ── MASUK AKUN ───────────────────────────────────────────────
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
       final response = await http.post(
@@ -55,7 +75,7 @@ class AuthService {
     }
   }
 
-  // ZHANGG! LOGIC BUAT NYEDOT PROFIL DARI XAMPP
+  // ── PROFIL PENGGUNA ───────────────────────────────────────────
   Future<Map<String, dynamic>> getProfile(String email) async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/profile/$email'));
@@ -96,17 +116,17 @@ class AuthService {
     }
   }
 
-  // LOGIC BUAT HAPUS AKUN
+  // ── HAPUS AKUN ───────────────────────────────────────────────
   Future<Map<String, dynamic>> deleteAccount(String email) async {
     final response = await http.delete(Uri.parse('$baseUrl/delete-account/$email'));
     return {'statusCode': response.statusCode, 'body': jsonDecode(response.body)};
   }
 
   // ==========================================
-  // FITUR SAVED ADDRESS (TAMBAHAN DARI GUA PAK)
+  // FITUR ALAMAT TERSIMPAN
   // ==========================================
 
-  // LOGIC BUAT NYEDOT ALAMAT DARI XAMPP
+  // ── MENGAMBIL DAFTAR ALAMAT ───────────────────────────────────
   Future<Map<String, dynamic>> getSavedAddresses(String username) async {
     try {
       final response = await http.get(
@@ -125,7 +145,7 @@ class AuthService {
     }
   }
 
-  // LOGIC BUAT NYIMPEN ALAMAT KE XAMPP
+  // ── MENYIMPAN ALAMAT BARU ─────────────────────────────────────
   Future<Map<String, dynamic>> saveNewAddress(String username, String address, String lat, String lng, String houseType, String description) async {
     try {
       final response = await http.post(
@@ -146,7 +166,7 @@ class AuthService {
     }
   }
 
-  // LOGIC BUAT HAPUS ALAMAT
+  // ── MENGHAPUS ALAMAT ──────────────────────────────────────────
   Future<Map<String, dynamic>> deleteAddress(String id) async {
     try {
       final response = await http.delete(Uri.parse('$baseUrl/delete_address/$id'));
@@ -156,7 +176,7 @@ class AuthService {
     }
   }
 
-  // LOGIC BUAT EDIT ALAMAT (Patokan & Tipe Hunian)
+  // ── MENGUBAH ALAMAT ───────────────────────────────────────────
   Future<Map<String, dynamic>> editAddress(String id, String address, String houseType, String description) async {
     try {
       final response = await http.put(
@@ -216,7 +236,7 @@ class AuthService {
     }
   }
 
-  // ZHANGG! INI DIA JAGOANNYE YANG LU LUPAIN KEMAREN PAK!
+  // ── MEMBATALKAN PESANAN ───────────────────────────────────────
   Future<Map<String, dynamic>> cancelOrder(String identifier) async {
     try {
       final response = await http.delete(
@@ -232,7 +252,7 @@ class AuthService {
   }
 
   
-// LOGIC BUAT NGIRIM EVALUASI TPM
+  // ── MENGIRIM EVALUASI ─────────────────────────────────────────
   Future<Map<String, dynamic>> submitEvaluasi(String email, double rating, String kesan, String saran) async {
     try {
       final response = await http.post(
@@ -252,7 +272,7 @@ class AuthService {
   }
 
 // ==========================================
-  // SELANG API ADMIN
+  // bagian API ADMIN
   // ==========================================
   Future<Map<String, dynamic>> loginAdmin(String username, String password) async {
     try {

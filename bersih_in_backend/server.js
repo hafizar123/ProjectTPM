@@ -100,6 +100,40 @@ app.post('/api/login', (req, res) => {
     });
 });
 
+// Rute login biometrik — tanpa password, identitas sudah diverifikasi sidik jari
+app.post('/api/biometric-login', (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ message: 'Email wajib diisi' });
+    }
+
+    const query = 'SELECT username, email FROM profiles WHERE email = ?';
+    db.query(query, [email], (err, results) => {
+        if (err) {
+            console.error('Database error:', err);
+            return res.status(500).json({ message: 'Terjadi kesalahan pada server' });
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ message: 'Akun tidak ditemukan' });
+        }
+
+        const user = results[0];
+        const token = jwt.sign(
+            { email: user.email, username: user.username },
+            process.env.JWT_SECRET,
+            { expiresIn: '1h' }
+        );
+
+        res.status(200).json({
+            message: 'Login biometrik berhasil',
+            token: token,
+            user: { username: user.username, email: user.email }
+        });
+    });
+});
+
 // Rute mengambil data profil
 app.get('/api/profile/:email', (req, res) => {
     const email = req.params.email;

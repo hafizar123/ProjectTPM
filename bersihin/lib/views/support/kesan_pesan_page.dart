@@ -6,7 +6,7 @@ import '../auth/login_page.dart';
 import '../../widgets/custom_navbar.dart';
 
 class EvaluasiPage extends StatefulWidget {
-  const EvaluasiPage({Key? key}) : super(key: key);
+  const EvaluasiPage({super.key});
   @override
   State<EvaluasiPage> createState() => _EvaluasiPageState();
 }
@@ -40,7 +40,7 @@ class _EvaluasiPageState extends State<EvaluasiPage> {
 
   Future<void> _submit() async {
     if (_kesanController.text.trim().isEmpty || _saranController.text.trim().isEmpty) {
-      _snack('Isi kesan dan saran dulu ya!', isError: true); return;
+      _snack('Harap isi kesan dan saran terlebih dahulu', isError: true); return;
     }
     setState(() => _isLoading = true);
     final res = await AuthService().submitEvaluasi(_email, _rating, _kesanController.text.trim(), _saranController.text.trim());
@@ -223,7 +223,7 @@ class _EvaluasiPageState extends State<EvaluasiPage> {
           Text('Terima Kasih!',
               style: GoogleFonts.outfit(fontSize: 28, fontWeight: FontWeight.w900, color: toscaDark)),
           const SizedBox(height: 10),
-          Text('Evaluasi kamu sudah berhasil dikirim.\nMasukan kamu sangat berarti untuk kemajuan mata kuliah TPM.',
+          Text('Evaluasi Anda sudah berhasil dikirim.\nMasukan Anda sangat berarti untuk kemajuan mata kuliah TPM.',
               textAlign: TextAlign.center,
               style: GoogleFonts.outfit(fontSize: 14, color: Colors.grey.shade600, height: 1.6)),
           const SizedBox(height: 16),

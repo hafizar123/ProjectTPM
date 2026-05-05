@@ -13,13 +13,13 @@ class ServiceDetailPage extends StatelessWidget {
   final Widget targetOrderPage;
 
   const ServiceDetailPage({
-    Key? key,
+    super.key,
     required this.title,
     required this.imagePath,
     required this.description,
     required this.benefits,
     required this.targetOrderPage,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +34,7 @@ class ServiceDetailPage extends StatelessWidget {
           CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
-              // HEADER: GAMBAR DENGAN EFEK PARALLAX & GRADIENT FUTURISTIK
+              // HEADER: GAMBAR DENGAN EFEK PARALLAX & GRADIENT modern
               SliverAppBar(
                 expandedHeight: 350.0,
                 pinned: true,
@@ -70,7 +70,7 @@ class ServiceDetailPage extends StatelessWidget {
                         imagePath, 
                         fit: BoxFit.cover,
                       ),
-                      // Overlay gradasi elegan biar teks title pop-up!
+                      // Overlay gradasi elegan agar teks title pop-up!
                       DecoratedBox(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
@@ -159,14 +159,14 @@ class ServiceDetailPage extends StatelessWidget {
                         ),
                         const SizedBox(height: 25),
 
-                        // Loop benefits list pak!
+                        // Loop benefits list !
                         ...benefits.map((benefit) => _buildBenefitItem(
                           benefit['icon'], 
                           benefit['title'], 
                           benefit['desc'],
                           toscaMedium,
                           toscaLight,
-                        )).toList(),
+                        )),
 
                         const SizedBox(height: 120), // Spasi lega buat tombol ngambang di bawah
                       ],
@@ -286,7 +286,7 @@ class ServiceDetailPage extends StatelessWidget {
     );
   }
 
-  // WIDGET ITEM KEUNGGULAN (MAKIN ELEGAN MON)
+  // WIDGET ITEM KEUNGGULAN (MAKIN ELEGAN )
   Widget _buildBenefitItem(IconData icon, String title, String desc, Color primary, Color light) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 25),

@@ -13,7 +13,7 @@ import '../views/support/ai_chat_page.dart';
 class CustomBottomNavBar extends StatelessWidget {
   final int selectedIndex;
 
-  const CustomBottomNavBar({Key? key, required this.selectedIndex}) : super(key: key);
+  const CustomBottomNavBar({super.key, required this.selectedIndex});
 
   void _onItemTapped(BuildContext context, int index) {
     if (selectedIndex == index) return;
@@ -80,7 +80,7 @@ class CustomBottomNavBar extends StatelessWidget {
 // WIDGET FLOATING ACTION BUTTON (FAB)
 // ==========================================
 class CustomFAB extends StatelessWidget {
-  const CustomFAB({Key? key}) : super(key: key);
+  const CustomFAB({super.key});
 
   @override
   Widget build(BuildContext context) {

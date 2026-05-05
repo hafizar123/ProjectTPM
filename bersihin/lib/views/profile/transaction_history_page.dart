@@ -5,7 +5,7 @@ import '../../services/auth_service.dart';
 import '../order/waiting_payment_page.dart';
 
 class TransactionHistoryPage extends StatefulWidget {
-  const TransactionHistoryPage({Key? key}) : super(key: key);
+  const TransactionHistoryPage({super.key});
   @override
   State<TransactionHistoryPage> createState() => _TransactionHistoryPageState();
 }

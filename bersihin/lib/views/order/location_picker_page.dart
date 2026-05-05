@@ -11,7 +11,7 @@ import 'address_detail_page.dart';
 class LocationPickerPage extends StatefulWidget {
   final Widget? nextPage; 
   
-  const LocationPickerPage({Key? key, this.nextPage}) : super(key: key);
+  const LocationPickerPage({super.key, this.nextPage});
 
   @override
   _LocationPickerPageState createState() => _LocationPickerPageState();
@@ -25,7 +25,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   final MapController _mapController = MapController();
   final TextEditingController _searchController = TextEditingController();
   
-  // Titik default UPNYK ye pak
+  // Titik default UPNYK ye
   LatLng _lastMapPosition = const LatLng(-7.7602, 110.4086);
   String _currentAddress = "Geser map untuk mencari alamat...";
   bool _isLoading = true;
@@ -38,7 +38,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   @override
   void initState() {
     super.initState();
-    // ZHANGG! Kasih jeda dikit biar Map-nye napas dulu sebelom nyari GPS
+    // Berikan jeda agar peta siap sebelum mencari GPS
     Future.delayed(const Duration(milliseconds: 500), () {
       _getCurrentLocation();
     });
@@ -86,7 +86,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
         return;
       }
 
-      // Sedot posisi pake akurasi medium biar cepet dapet
+      // ambil posisi menggunakan akurasi medium agar cepat dapet
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.medium,
         timeLimit: const Duration(seconds: 8),
@@ -96,7 +96,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       _updateLocation(currentLatLng);
       
     } catch (e) {
-      // Kalo nyangkut tetep dimatiin loadingnye
+      // jika nyangkut tetep dimatiin loadingnye
       _updateLocation(_lastMapPosition);
       _showNotif("Gagal mendapatkan lokasi GPS. Menggunakan lokasi default");
     }
@@ -126,11 +126,11 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     setState(() => _isSearching = true);
     
     try {
-      // Balik pake Nominatim tapi pake identitas lu biar kaga di-banned!
+      // Balik menggunakan Nominatim tapi menggunakan identitas Anda agar tidak di-banned!
       final url = Uri.parse('https://nominatim.openstreetmap.org/search?q=$query&format=json&addressdetails=1&limit=5&countrycodes=id');
       final response = await http.get(url, headers: {
         'User-Agent': 'BersihInApp_SimonPulung_UPNYK/1.0'
-      }).timeout(const Duration(seconds: 10)); // Batas waktu 10 detik biar kaga muter selamanya
+      }).timeout(const Duration(seconds: 10)); // Batas waktu 10 detik agar tidak muter selamanya
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -165,7 +165,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   }
 
   // ==========================================
-  // FUNGSI REVERSE GEOCODE: TITIK -> ALAMAT 
+  // FUNGSI REVERSE GEOCODE: TITIK -> ALAMAT
   // ==========================================
   void _onMapEvent(MapCamera camera, bool hasGesture) {
     if (hasGesture) {
@@ -264,7 +264,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
             ),
           ),
 
-          // LOADING DIMATIIN KALO UDEH KELAR
+          // LOADING DIMATIIN jika sudah KELAR
           if (_isLoading)
             Container(color: Colors.white.withOpacity(0.5), child: Center(child: CircularProgressIndicator(color: toscaDark))),
 
@@ -378,7 +378,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                           height: 55,
                           child: ElevatedButton(
                             onPressed: () {
-                              // Langsung lempar koordinat & alamat ke halaman detail hunian Mon!
+                              // Langsung lempar koordinat & alamat ke halaman detail hunian !
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -391,7 +391,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                                   ),
                                 ),
                               ).then((value) {
-                                // Kalo balik dari simpen detail, Map ikutan nutup Mon!
+                                // jika balik dari simpan detail, Map ikutan nutup !
                                 if (value == true) Navigator.pop(context, true);
                               });
                             },
