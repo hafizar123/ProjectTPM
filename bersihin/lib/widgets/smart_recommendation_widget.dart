@@ -391,14 +391,12 @@ class _SmartRecommendationWidgetState extends State<SmartRecommendationWidget>
       children: List.generate(_recommendations.length, (i) {
         final rec = _recommendations[i];
         return Expanded(
-          child: GestureDetector(
-            onTap: () => _navigateToService(context, rec.serviceName),
-            child: Container(
-              margin: EdgeInsets.only(right: i < _recommendations.length - 1 ? 10 : 0),
-              child: _RecommendationCard(
-                recommendation: rec,
-                index: i,
-              ),
+          child: Container(
+            margin: EdgeInsets.only(right: i < _recommendations.length - 1 ? 10 : 0),
+            child: _RecommendationCard(
+              recommendation: rec,
+              index: i,
+              onTap: () => _navigateToService(context, rec.serviceName),
             ),
           ),
         );
@@ -411,10 +409,12 @@ class _SmartRecommendationWidgetState extends State<SmartRecommendationWidget>
 class _RecommendationCard extends StatefulWidget {
   final ServiceRecommendation recommendation;
   final int index;
+  final VoidCallback onTap;
 
   const _RecommendationCard({
     required this.recommendation,
     required this.index,
+    required this.onTap,
   });
 
   @override
@@ -472,6 +472,7 @@ class _RecommendationCardState extends State<_RecommendationCard>
       onTapUp: (_) {
         setState(() => _pressed = false);
         _hoverCtrl.reverse();
+        widget.onTap();
       },
       onTapCancel: () {
         setState(() => _pressed = false);
