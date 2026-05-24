@@ -142,11 +142,6 @@ class _SmartRecommendationWidgetState extends State<SmartRecommendationWidget>
       'image': 'https://images.unsplash.com/photo-1512314889357-e157c22f938d?q=80&w=2071&auto=format&fit=crop',
       'desc': 'Kembalikan warna dan kebersihan furnitur kesayangan Anda.',
     },
-    'Langganan Bulanan': {
-      'title': 'Langganan Bulanan',
-      'image': 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?q=80&w=2070&auto=format&fit=crop',
-      'desc': 'Hemat lebih banyak dengan paket berlangganan bulanan.',
-    },
   };
 
   void _navigateToService(BuildContext context, String serviceName) {

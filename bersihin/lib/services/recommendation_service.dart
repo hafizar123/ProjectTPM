@@ -30,7 +30,6 @@ class RecommendationService {
     'Pijat Relaksasi':  {'icon': '💆', 'price': 'Rp 100.000 – 200.000'},
     'Service AC':       {'icon': '❄️', 'price': 'Rp 100.000 – 400.000'},
     'Cuci Sofa':        {'icon': '🛋️', 'price': 'Rp 120.000 – 350.000'},
-    'Langganan Bulanan':{'icon': '📅', 'price': 'Rp 450.000 – 1.100.000'},
   };
 
   /// Ambil rekomendasi berdasarkan histori order user
@@ -82,7 +81,6 @@ Layanan yang tersedia:
 - Pijat Relaksasi
 - Service AC
 - Cuci Sofa
-- Langganan Bulanan
 
 Berikan TEPAT 3 rekomendasi layanan yang paling relevan untuk user ini.
 Jawab HANYA dalam format JSON array berikut, tanpa teks lain:
@@ -179,10 +177,10 @@ Jawab HANYA dalam format JSON array berikut, tanpa teks lain:
         priceRange: 'Rp 100.000 – 200.000',
       ),
       ServiceRecommendation(
-        serviceName: 'Langganan Bulanan',
-        reason: 'Hemat lebih banyak dengan paket berlangganan',
-        icon: '📅',
-        priceRange: 'Rp 450.000 – 1.100.000',
+        serviceName: 'Deep Cleaning',
+        reason: 'Bersihkan hunian secara menyeluruh dan mendetail',
+        icon: '🏠',
+        priceRange: 'Rp 350.000 – 950.000',
       ),
     ];
   }

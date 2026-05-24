@@ -24,27 +24,22 @@ Bersih.In adalah aplikasi layanan kebersihan dan perawatan hunian berbasis mobil
    - Cuci Mobil Standar: Rp 60.000
    - Cuci Mobil + Interior: Rp 120.000
 
-4. Langganan Bulanan
-   - Paket Silver (4x/Bulan): Rp 450.000
-   - Paket Gold (8x/Bulan): Rp 800.000
-   - Paket Platinum (12x/Bulan): Rp 1.100.000
-
-5. Deep Cleaning
+4. Deep Cleaning
    - Studio/Kos: Rp 350.000
    - Rumah 2-3 Kamar: Rp 650.000
    - Rumah Besar 4+ Kamar: Rp 950.000
 
-6. Pijat Relaksasi
+5. Pijat Relaksasi
    - Pijat Tradisional (60 Menit): Rp 120.000
    - Pijat Refleksi (60 Menit): Rp 100.000
    - Pijat Premium (90 Menit): Rp 200.000
 
-7. Service AC
+6. Service AC
    - Cuci AC Standard: Rp 100.000
    - Servis + Isi Freon: Rp 250.000
    - Bongkar Pasang + Servis: Rp 400.000
 
-8. Cuci Sofa
+7. Cuci Sofa
    - Sofa 1-2 Dudukan: Rp 120.000
    - Sofa 3 Dudukan / L-Shape: Rp 220.000
    - Paket Sofa + Karpet: Rp 350.000
