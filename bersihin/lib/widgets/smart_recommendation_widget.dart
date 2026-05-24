@@ -80,7 +80,7 @@ class _SmartRecommendationWidgetState extends State<SmartRecommendationWidget>
 
     try {
       final recs = widget.isGuest
-          ? _recService.getPopularPublic()
+          ? await _recService.getPopularPublicAsync()
           : await _recService.getRecommendations(widget.email);
 
       if (mounted) {
