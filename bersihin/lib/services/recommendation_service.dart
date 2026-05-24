@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'auth_service.dart';
 
 /// Model data untuk satu rekomendasi layanan
 class ServiceRecommendation {
@@ -19,7 +20,8 @@ class ServiceRecommendation {
 }
 
 class RecommendationService {
-  static const String _baseUrl = 'http://192.168.18.7:3000/api';
+  // Pakai baseUrl yang sama dengan AuthService agar konsisten
+  static String get _baseUrl => AuthService.baseUrl;
 
   /// Ambil rekomendasi dari endpoint ML Content-Based Filtering di backend
   Future<List<ServiceRecommendation>> getRecommendations(String email) async {
@@ -34,7 +36,14 @@ class RecommendationService {
 
         if (data.isEmpty) return _getPopularRecommendations();
 
-        return data.map((item) => ServiceRecommendation(
+        // Pastikan tidak ada duplikat nama layanan
+        final seen = <String>{};
+        final unique = data.where((item) {
+          final name = item['service_name'] ?? '';
+          return seen.add(name);
+        }).toList();
+
+        return unique.map((item) => ServiceRecommendation(
           serviceName: item['service_name'] ?? '',
           reason: item['reason'] ?? '',
           icon: item['icon'] ?? '✨',

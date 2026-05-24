@@ -661,10 +661,11 @@ app.get('/api/recommendations/:email', (req, res) => {
         // Ambil top-3
         const top3 = candidates.slice(0, 3);
 
-        // Jika kandidat kurang dari 3, tambahkan dari yang sudah dipesan
+        // Jika kandidat kurang dari 3, tambahkan dari yang sudah dipesan (tanpa duplikat)
         if (top3.length < 3) {
+            const usedNames = new Set(top3.map(i => i.name));
             const extras = allServices
-                .filter(name => orderedSet.has(name))
+                .filter(name => orderedSet.has(name) && !usedNames.has(name))
                 .map(name => ({ name, score: cosineSimilarity(userProfile, SERVICE_FEATURES[name]) }))
                 .sort((a, b) => b.score - a.score);
             top3.push(...extras.slice(0, 3 - top3.length));
