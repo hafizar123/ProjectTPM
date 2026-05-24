@@ -100,47 +100,87 @@ class _SmartRecommendationWidgetState extends State<SmartRecommendationWidget>
     }
   }
 
-  // ── Map nama layanan ke ServiceDetailPage ───────────────────
+  // ── Map nama layanan ke ServiceDetailPage — SAMA PERSIS dengan home_page.dart
   static const Map<String, Map<String, dynamic>> _serviceDetailMap = {
     'Pemanas Air': {
       'title': 'Layanan Pemanas Air',
       'image': 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=2070&auto=format&fit=crop',
-      'desc': 'BersihIn menyediakan solusi teknis profesional untuk perawatan dan perbaikan sistem pemanas air Anda.',
+      'desc': 'BersihIn menyediakan solusi teknis profesional untuk perawatan dan perbaikan sistem pemanas air Anda guna menjamin ketersediaan air hangat yang stabil dan efisien di hunian Anda.',
+      'benefits': [
+        {'icon': Icons.flash_on_rounded,      'title': 'Efisiensi Waktu',  'desc': 'Teknisi profesional kami akan tiba di lokasi sesuai dengan jadwal yang Anda tentukan.'},
+        {'icon': Icons.verified_user_rounded, 'title': 'Harga Transparan', 'desc': 'Seluruh rincian biaya ditampilkan secara eksplisit di awal pemesanan tanpa biaya tersembunyi.'},
+        {'icon': Icons.engineering_rounded,   'title': 'Teknisi Ahli',     'desc': 'Proses pengerjaan dilakukan oleh tenaga ahli yang telah melewati proses verifikasi.'},
+      ],
     },
     'Reguler Cleaning': {
       'title': 'Reguler Cleaning',
       'image': 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?q=80&w=2070&auto=format&fit=crop',
-      'desc': 'Layanan kebersihan harian dengan standar hotel bintang 5.',
+      'desc': 'Layanan kebersihan harian dengan standar hotel bintang 5. Tim BersihIn akan menyulap hunian Anda menjadi zona nyaman yang higienis.',
+      'benefits': [
+        {'icon': Icons.schedule_rounded,    'title': 'Waktu Fleksibel', 'desc': 'Atur jadwal kedatangan teknisi kebersihan sesuai ritme aktivitas harian Anda.'},
+        {'icon': Icons.eco_rounded,         'title': 'Eco-Friendly',    'desc': 'Menggunakan cairan pembersih ramah lingkungan yang aman bagi keluarga.'},
+        {'icon': Icons.star_border_rounded, 'title': 'Standar Premium', 'desc': 'Setiap sudut ruangan dibersihkan dengan protokol kebersihan ketat.'},
+      ],
     },
     'Cuci Kendaraan': {
       'title': 'Cuci Kendaraan',
       'image': 'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?q=80&w=2031&auto=format&fit=crop',
-      'desc': 'Layanan cuci kendaraan profesional langsung di depan rumah Anda.',
+      'desc': 'Layanan cuci kendaraan profesional langsung di depan rumah Anda. Motor, mobil, hingga kendaraan keluarga besar ditangani dengan peralatan modern.',
+      'benefits': [
+        {'icon': Icons.water_drop_rounded, 'title': 'Bersih Menyeluruh', 'desc': 'Pembersihan eksterior dan interior kendaraan dengan sabun khusus anti-jamur.'},
+        {'icon': Icons.home_rounded,       'title': 'Layanan di Rumah',  'desc': 'Teknisi datang ke lokasi Anda, tidak perlu antri di tempat cuci umum.'},
+        {'icon': Icons.shield_rounded,     'title': 'Aman untuk Cat',    'desc': 'Menggunakan produk ramah cat yang menjaga kilap dan melindungi bodi kendaraan.'},
+      ],
     },
     'Cuci Kasur': {
       'title': 'Cuci Kasur',
       'image': 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?q=80&w=2070&auto=format&fit=crop',
-      'desc': 'Kasur bersih, bebas tungau, dan wangi segar dengan teknologi steam cleaning.',
+      'desc': 'Kasur bersih, bebas tungau, dan wangi segar. Layanan cuci kasur profesional dengan teknologi steam cleaning yang aman untuk semua jenis kasur.',
+      'benefits': [
+        {'icon': Icons.bug_report_rounded,       'title': 'Basmi Tungau',     'desc': 'Steam cleaning 100°C membunuh tungau dan bakteri penyebab alergi secara efektif.'},
+        {'icon': Icons.air_rounded,              'title': 'Wangi Tahan Lama', 'desc': 'Menggunakan pewangi khusus kasur yang aman dan tahan lama hingga berminggu-minggu.'},
+        {'icon': Icons.health_and_safety_rounded,'title': 'Tidur Lebih Sehat','desc': 'Kasur bersih meningkatkan kualitas tidur dan mengurangi risiko gangguan pernapasan.'},
+      ],
     },
     'Deep Cleaning': {
       'title': 'Deep Cleaning',
       'image': 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?q=80&w=1974&auto=format&fit=crop',
-      'desc': 'Pembersihan intensif hingga ke sudut terdalam rumah Anda.',
+      'desc': 'Pembersihan intensif hingga ke sudut terdalam rumah Anda. Solusi sempurna untuk sterilisasi total hunian.',
+      'benefits': [
+        {'icon': Icons.sanitizer_rounded,  'title': 'Disinfeksi 99%', 'desc': 'Membunuh bakteri menggunakan chemical disinfektan berstandar medis.'},
+        {'icon': Icons.hardware_rounded,   'title': 'Alat Khusus',    'desc': 'Pengerjaan menggunakan peralatan heavy-duty untuk mengangkat noda.'},
+        {'icon': Icons.bug_report_rounded, 'title': 'Bebas Tungau',   'desc': 'Vakum khusus memastikan kasur dan karpet terbebas dari tungau.'},
+      ],
     },
     'Pijat Relaksasi': {
       'title': 'Pijat Relaksasi',
       'image': 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?q=80&w=2070&auto=format&fit=crop',
-      'desc': 'Hadirkan suasana spa eksklusif di ruang keluarga Anda.',
+      'desc': 'Hadirkan suasana spa eksklusif di ruang keluarga Anda. Kembalikan energi tubuh bersama terapis profesional.',
+      'benefits': [
+        {'icon': Icons.accessibility_new_rounded, 'title': 'Terapis Sertifikasi', 'desc': 'Dilayani langsung oleh terapis profesional yang telah tersertifikasi.'},
+        {'icon': Icons.self_improvement_rounded,  'title': 'Metode Beragam',      'desc': 'Pilih metode pijat sesuai kebutuhan, dari tradisional hingga shiatsu.'},
+        {'icon': Icons.lock_person_rounded,       'title': 'Privasi Terjamin',    'desc': 'Nikmati relaksasi maksimal tanpa harus keluar dari privasi rumah.'},
+      ],
     },
     'Service AC': {
       'title': 'Service AC',
       'image': 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?q=80&w=2069&auto=format&fit=crop',
-      'desc': 'Perawatan AC menyeluruh dengan teknologi diagnosa presisi.',
+      'desc': 'Perawatan AC menyeluruh dengan teknologi diagnosa presisi. Udara kembali sejuk, bersih, dan hemat energi.',
+      'benefits': [
+        {'icon': Icons.water_rounded,    'title': 'Cuci Bersih',   'desc': 'Pembersihan evaporator dan kondensor menghilangkan debu dan jamur.'},
+        {'icon': Icons.gas_meter_rounded,'title': 'Cek Freon',     'desc': 'Pengukuran tekanan freon untuk memastikan kinerja pendinginan.'},
+        {'icon': Icons.ac_unit_rounded,  'title': 'Garansi Dingin','desc': 'Garansi service jika AC Anda tidak kembali dingin setelah perawatan.'},
+      ],
     },
     'Cuci Sofa': {
       'title': 'Cuci Sofa',
       'image': 'https://images.unsplash.com/photo-1512314889357-e157c22f938d?q=80&w=2071&auto=format&fit=crop',
-      'desc': 'Kembalikan warna dan kebersihan furnitur kesayangan Anda.',
+      'desc': 'Kembalikan warna dan kebersihan furnitur kesayangan Anda dengan metode ekstraksi vakum basah canggih.',
+      'benefits': [
+        {'icon': Icons.cleaning_services_rounded, 'title': 'Angkat Noda',    'desc': 'Teknologi ekstraksi mampu mengangkat noda membandel pada kain.'},
+        {'icon': Icons.timer_rounded,             'title': 'Cepat Kering',   'desc': 'Metode dry-cleaning kami memastikan sofa bisa langsung digunakan.'},
+        {'icon': Icons.health_and_safety_rounded, 'title': 'Aman untuk Kain','desc': 'Menggunakan shampo khusus yang tidak merusak serat furnitur.'},
+      ],
     },
   };
 
@@ -156,11 +196,9 @@ class _SmartRecommendationWidgetState extends State<SmartRecommendationWidget>
           imagePath: detail['image'] as String,
           description: detail['desc'] as String,
           targetOrderPage: OrderLayananPage(namaLayanan: serviceName),
-          benefits: const [
-            {'icon': Icons.flash_on_rounded,      'title': 'Efisiensi Waktu',  'desc': 'Teknisi profesional tiba sesuai jadwal.'},
-            {'icon': Icons.verified_user_rounded, 'title': 'Harga Transparan', 'desc': 'Tidak ada biaya tersembunyi.'},
-            {'icon': Icons.engineering_rounded,   'title': 'Teknisi Ahli',     'desc': 'Tenaga ahli terverifikasi.'},
-          ],
+          benefits: List<Map<String, dynamic>>.from(
+            detail['benefits'] as List,
+          ),
         ),
         transitionsBuilder: (_, a1, _, child) =>
             FadeTransition(opacity: a1, child: child),
