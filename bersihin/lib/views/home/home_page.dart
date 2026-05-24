@@ -275,7 +275,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   // =================================================================
-  // WIDGET JAM KONVERSI � ELEGAN & modern
+  // WIDGET JAM KONVERSI - ELEGAN & modern
   // =================================================================
   Widget _buildRealTimeClock() {
     final utcTime = _currentTime.toUtc();
@@ -714,7 +714,7 @@ class _HomePageState extends State<HomePage> {
                             description: 'Kasur bersih, bebas tungau, dan wangi segar. Layanan cuci kasur profesional dengan teknologi steam cleaning yang aman untuk semua jenis kasur.',
                             targetOrderPage: OrderLayananPage(namaLayanan: 'Cuci Kasur'),
                             benefits: const [
-                              {'icon': Icons.bug_report_rounded, 'title': 'Basmi Tungau', 'desc': 'Steam cleaning 100�C membunuh tungau dan bakteri penyebab alergi secara efektif.'},
+                              {'icon': Icons.bug_report_rounded, 'title': 'Basmi Tungau', 'desc': 'Steam cleaning 100-C membunuh tungau dan bakteri penyebab alergi secara efektif.'},
                               {'icon': Icons.air_rounded, 'title': 'Wangi Tahan Lama', 'desc': 'Menggunakan pewangi khusus kasur yang aman dan tahan lama hingga berminggu-minggu.'},
                               {'icon': Icons.health_and_safety_rounded, 'title': 'Tidur Lebih Sehat', 'desc': 'Kasur bersih meningkatkan kualitas tidur dan mengurangi risiko gangguan pernapasan.'},
                             ],
