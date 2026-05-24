@@ -8,6 +8,7 @@ import '../../services/auth_service.dart';
 import '../auth/login_page.dart';
 import '../../widgets/custom_navbar.dart';
 import '../../widgets/home_carousel.dart';
+import '../../widgets/smart_recommendation_widget.dart';
 import '../order/service_detail_page.dart';
 import '../order/order_layanan_page.dart';
 import '../support/mini_game_page.dart';
@@ -26,6 +27,7 @@ class _HomePageState extends State<HomePage> {
   bool _isCollapsed = false;
   String _username = 'Tamu';
   bool _isGuest = true;
+  String _savedEmail = '';
   
   // Variabel untuk jam real-time
   Timer? _clockTimer;
@@ -86,6 +88,7 @@ class _HomePageState extends State<HomePage> {
     if (savedEmail.isNotEmpty) {
       setState(() {
         _isGuest = false;
+        _savedEmail = savedEmail;
         _username = prefs.getString('saved_username') ?? "Pengguna";
         _selectedZone = savedZone; // Terapkan zona waktu terakhir yang tersimpan
       });
@@ -102,6 +105,7 @@ class _HomePageState extends State<HomePage> {
     } else {
       setState(() {
         _isGuest = true;
+        _savedEmail = '';
         _username = "Tamu";
         _selectedZone = savedZone;
       });
@@ -528,12 +532,16 @@ class _HomePageState extends State<HomePage> {
 
                     // Carousel: Info App + Apa Kata Orang
                     const HomeCarousel(),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 22),
+
+                    // ── Smart AI Recommendation ──────────────
+                    SmartRecommendationWidget(
+                      email: _savedEmail,
+                      isGuest: _isGuest,
+                    ),
 
                     if (_isGuest)
                       Container(
-                        width: double.infinity,
-                        margin: const EdgeInsets.only(bottom: 20),
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         decoration: BoxDecoration(
                           color: Colors.amber.shade50,
