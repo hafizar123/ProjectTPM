@@ -529,8 +529,180 @@ app.put('/api/admin/reports/:id/status', (req, res) => {
 });
 
 // ==========================================
-// SERVER
+// RUTE ML — CONTENT-BASED FILTERING
 // ==========================================
+
+/**
+ * Representasi vektor fitur tiap layanan.
+ * Dimensi: [kebersihan_umum, teknis, relaksasi, kendaraan, kasur_sofa, harga_rendah, harga_sedang, harga_tinggi]
+ *
+ * Ini adalah feature matrix yang digunakan untuk menghitung cosine similarity
+ * antar layanan — inti dari algoritma Content-Based Filtering.
+ */
+const SERVICE_FEATURES = {
+    'Pemanas Air':      [0, 1, 0, 0, 0, 0, 1, 0],  // teknis, harga sedang
+    'Reguler Cleaning': [1, 0, 0, 0, 0, 1, 0, 0],  // kebersihan umum, harga rendah
+    'Cuci Kendaraan':   [0, 0, 0, 1, 0, 1, 0, 0],  // kendaraan, harga rendah
+    'Cuci Kasur':       [0, 0, 0, 0, 1, 0, 1, 0],  // kasur/sofa, harga sedang
+    'Deep Cleaning':    [1, 0, 0, 0, 0, 0, 0, 1],  // kebersihan umum, harga tinggi
+    'Pijat Relaksasi':  [0, 0, 1, 0, 0, 0, 1, 0],  // relaksasi, harga sedang
+    'Service AC':       [0, 1, 0, 0, 0, 0, 1, 0],  // teknis, harga sedang
+    'Cuci Sofa':        [0, 0, 0, 0, 1, 0, 1, 0],  // kasur/sofa, harga sedang
+};
+
+const SERVICE_META = {
+    'Pemanas Air':      { icon: '🔥', price: 'Rp 100.000 – 250.000' },
+    'Reguler Cleaning': { icon: '🧹', price: 'Rp 80.000 – 280.000'  },
+    'Cuci Kendaraan':   { icon: '🚗', price: 'Rp 25.000 – 120.000'  },
+    'Cuci Kasur':       { icon: '🛏️', price: 'Rp 150.000 – 300.000' },
+    'Deep Cleaning':    { icon: '🏠', price: 'Rp 350.000 – 950.000' },
+    'Pijat Relaksasi':  { icon: '💆', price: 'Rp 100.000 – 200.000' },
+    'Service AC':       { icon: '❄️', price: 'Rp 100.000 – 400.000' },
+    'Cuci Sofa':        { icon: '🛋️', price: 'Rp 120.000 – 350.000' },
+};
+
+/** Hitung dot product dua vektor */
+function dotProduct(a, b) {
+    return a.reduce((sum, val, i) => sum + val * b[i], 0);
+}
+
+/** Hitung magnitude (panjang) vektor */
+function magnitude(v) {
+    return Math.sqrt(v.reduce((sum, val) => sum + val * val, 0));
+}
+
+/** Hitung cosine similarity antara dua vektor fitur */
+function cosineSimilarity(a, b) {
+    const magA = magnitude(a);
+    const magB = magnitude(b);
+    if (magA === 0 || magB === 0) return 0;
+    return dotProduct(a, b) / (magA * magB);
+}
+
+/**
+ * Bangun profil vektor user berdasarkan histori order.
+ * Rata-ratakan vektor semua layanan yang pernah dipesan,
+ * dengan bobot lebih tinggi untuk layanan yang sering dipesan.
+ */
+function buildUserProfile(orderedServices) {
+    const dim = 8;
+    const profile = new Array(dim).fill(0);
+    let totalWeight = 0;
+
+    for (const [serviceName, count] of Object.entries(orderedServices)) {
+        const vec = SERVICE_FEATURES[serviceName];
+        if (!vec) continue;
+        for (let i = 0; i < dim; i++) {
+            profile[i] += vec[i] * count; // bobot = frekuensi pesan
+        }
+        totalWeight += count;
+    }
+
+    // Normalisasi profil
+    if (totalWeight > 0) {
+        for (let i = 0; i < dim; i++) {
+            profile[i] /= totalWeight;
+        }
+    }
+
+    return profile;
+}
+
+// Endpoint ML: Content-Based Filtering Recommendation
+app.get('/api/recommendations/:email', (req, res) => {
+    const email = req.params.email;
+
+    // Ambil histori order user
+    const sql = "SELECT service_name FROM orders WHERE user_email = ? ORDER BY created_at DESC";
+    db.query(sql, [email], (err, results) => {
+        if (err) return res.status(500).json({ error: err.message });
+
+        const allServices = Object.keys(SERVICE_FEATURES);
+
+        // Jika belum ada histori, kembalikan layanan populer
+        if (results.length === 0) {
+            const popular = ['Reguler Cleaning', 'Service AC', 'Cuci Kasur'];
+            const data = popular.map(name => ({
+                service_name: name,
+                similarity_score: 1.0,
+                reason: 'Layanan populer pilihan pengguna',
+                icon: SERVICE_META[name]?.icon || '✨',
+                price_range: SERVICE_META[name]?.price || '-',
+            }));
+            return res.status(200).json({ data, method: 'popular', user_has_history: false });
+        }
+
+        // Hitung frekuensi tiap layanan yang dipesan
+        const serviceCount = {};
+        const orderedSet = new Set();
+        for (const row of results) {
+            const raw = row.service_name || '';
+            // Ambil kategori utama (sebelum ' - ' atau ' – ')
+            const category = raw.split(/\s[-–]\s/)[0].trim();
+            if (SERVICE_FEATURES[category]) {
+                serviceCount[category] = (serviceCount[category] || 0) + 1;
+                orderedSet.add(category);
+            }
+        }
+
+        // Bangun user profile vector
+        const userProfile = buildUserProfile(serviceCount);
+
+        // Hitung similarity score tiap layanan yang BELUM pernah dipesan
+        const candidates = allServices
+            .filter(name => !orderedSet.has(name))
+            .map(name => {
+                const vec = SERVICE_FEATURES[name];
+                const score = cosineSimilarity(userProfile, vec);
+                return { name, score };
+            })
+            .sort((a, b) => b.score - a.score); // urutkan dari score tertinggi
+
+        // Ambil top-3
+        const top3 = candidates.slice(0, 3);
+
+        // Jika kandidat kurang dari 3, tambahkan dari yang sudah dipesan
+        if (top3.length < 3) {
+            const extras = allServices
+                .filter(name => orderedSet.has(name))
+                .map(name => ({ name, score: cosineSimilarity(userProfile, SERVICE_FEATURES[name]) }))
+                .sort((a, b) => b.score - a.score);
+            top3.push(...extras.slice(0, 3 - top3.length));
+        }
+
+        const data = top3.map(item => ({
+            service_name: item.name,
+            similarity_score: parseFloat(item.score.toFixed(4)),
+            reason: generateReason(item.name, serviceCount),
+            icon: SERVICE_META[item.name]?.icon || '✨',
+            price_range: SERVICE_META[item.name]?.price || '-',
+        }));
+
+        res.status(200).json({
+            data,
+            method: 'content_based_filtering',
+            user_has_history: true,
+            user_profile_vector: userProfile.map(v => parseFloat(v.toFixed(4))),
+        });
+    });
+});
+
+/** Generate alasan rekomendasi berdasarkan konteks histori */
+function generateReason(serviceName, serviceCount) {
+    const reasons = {
+        'Pemanas Air':      'Perawatan teknis rumah yang sering dibutuhkan',
+        'Reguler Cleaning': 'Jaga kebersihan hunian secara rutin',
+        'Cuci Kendaraan':   'Kendaraan bersih meningkatkan kenyamanan berkendara',
+        'Cuci Kasur':       'Kasur bersih untuk tidur lebih berkualitas',
+        'Deep Cleaning':    'Bersihkan hunian secara menyeluruh dan mendetail',
+        'Pijat Relaksasi':  'Pulihkan energi setelah aktivitas padat',
+        'Service AC':       'AC terawat hemat listrik dan udara lebih segar',
+        'Cuci Sofa':        'Sofa bersih untuk ruang tamu yang nyaman',
+    };
+    return reasons[serviceName] || 'Layanan yang cocok untuk kebutuhan Anda';
+}
+
+
 
 app.get('/', (req, res) => {
     res.send('Server Bersih.In berjalan');

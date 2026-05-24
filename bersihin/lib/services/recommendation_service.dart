@@ -1,5 +1,5 @@
-import 'package:google_generative_ai/google_generative_ai.dart';
-import 'auth_service.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 /// Model data untuk satu rekomendasi layanan
 class ServiceRecommendation {
@@ -7,128 +7,43 @@ class ServiceRecommendation {
   final String reason;
   final String icon;
   final String priceRange;
+  final double similarityScore;
 
   const ServiceRecommendation({
     required this.serviceName,
     required this.reason,
     required this.icon,
     required this.priceRange,
+    this.similarityScore = 0.0,
   });
 }
 
 class RecommendationService {
-  final String _apiKey = 'AIzaSyA90Y0qej5QPk-UodJHohq8KeV_HHq4QaQ';
-  final AuthService _authService = AuthService();
+  static const String _baseUrl = 'http://192.168.18.7:3000/api';
 
-  // Map nama layanan ke icon & harga
-  static const Map<String, Map<String, String>> _serviceInfo = {
-    'Pemanas Air':      {'icon': '🔥', 'price': 'Rp 100.000 – 250.000'},
-    'Reguler Cleaning': {'icon': '🧹', 'price': 'Rp 80.000 – 280.000'},
-    'Cuci Kendaraan':   {'icon': '🚗', 'price': 'Rp 25.000 – 120.000'},
-    'Cuci Kasur':       {'icon': '🛏️', 'price': 'Rp 150.000 – 300.000'},
-    'Deep Cleaning':    {'icon': '🏠', 'price': 'Rp 350.000 – 950.000'},
-    'Pijat Relaksasi':  {'icon': '💆', 'price': 'Rp 100.000 – 200.000'},
-    'Service AC':       {'icon': '❄️', 'price': 'Rp 100.000 – 400.000'},
-    'Cuci Sofa':        {'icon': '🛋️', 'price': 'Rp 120.000 – 350.000'},
-  };
-
-  /// Ambil rekomendasi berdasarkan histori order user
+  /// Ambil rekomendasi dari endpoint ML Content-Based Filtering di backend
   Future<List<ServiceRecommendation>> getRecommendations(String email) async {
     try {
-      // 1. Ambil histori order user
-      final ordersRes = await _authService.getOrders(email);
-      if (ordersRes['statusCode'] != 200) return _getFallbackRecommendations();
+      final response = await http
+          .get(Uri.parse('$_baseUrl/recommendations/$email'))
+          .timeout(const Duration(seconds: 10));
 
-      final List<dynamic> orders = ordersRes['body']['data'] ?? [];
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        final List<dynamic> data = body['data'] ?? [];
 
-      // 2. Kalau belum punya order, kasih rekomendasi populer
-      if (orders.isEmpty) return _getPopularRecommendations();
+        if (data.isEmpty) return _getPopularRecommendations();
 
-      // 3. Susun ringkasan histori untuk dikirim ke Gemini
-      final Map<String, int> serviceCount = {};
-      final List<String> recentServices = [];
-
-      for (final order in orders) {
-        final name = (order['service_name'] ?? '').toString();
-        // Ambil nama kategori utama (sebelum ' – ')
-        final category = name.contains(' – ') ? name.split(' – ')[0].trim() : name;
-        serviceCount[category] = (serviceCount[category] ?? 0) + 1;
-        if (recentServices.length < 5) recentServices.add(category);
+        return data.map((item) => ServiceRecommendation(
+          serviceName: item['service_name'] ?? '',
+          reason: item['reason'] ?? '',
+          icon: item['icon'] ?? '✨',
+          priceRange: item['price_range'] ?? '-',
+          similarityScore: (item['similarity_score'] ?? 0.0).toDouble(),
+        )).toList();
       }
 
-      final historySummary = serviceCount.entries
-          .map((e) => '${e.key} (${e.value}x)')
-          .join(', ');
-
-      // 4. Kirim ke Gemini
-      final model = GenerativeModel(
-        model: 'gemini-flash-latest',
-        apiKey: _apiKey,
-      );
-
-      final prompt = '''
-Kamu adalah sistem rekomendasi layanan kebersihan untuk aplikasi Bersih.In.
-
-Histori layanan yang pernah dipesan user: $historySummary
-Layanan terakhir dipesan: ${recentServices.first}
-
-Layanan yang tersedia:
-- Pemanas Air
-- Reguler Cleaning
-- Cuci Kendaraan
-- Cuci Kasur
-- Deep Cleaning
-- Pijat Relaksasi
-- Service AC
-- Cuci Sofa
-
-Berikan TEPAT 3 rekomendasi layanan yang paling relevan untuk user ini.
-Jawab HANYA dalam format JSON array berikut, tanpa teks lain:
-[
-  {"service": "Nama Layanan", "reason": "Alasan singkat 1 kalimat max 10 kata"},
-  {"service": "Nama Layanan", "reason": "Alasan singkat 1 kalimat max 10 kata"},
-  {"service": "Nama Layanan", "reason": "Alasan singkat 1 kalimat max 10 kata"}
-]
-''';
-
-      final response = await model.generateContent([Content.text(prompt)]);
-      final text = response.text ?? '';
-
-      return _parseGeminiResponse(text);
-    } catch (e) {
       return _getFallbackRecommendations();
-    }
-  }
-
-  /// Parse response JSON dari Gemini
-  List<ServiceRecommendation> _parseGeminiResponse(String text) {
-    try {
-      // Ekstrak JSON dari response (kadang Gemini bungkus dengan markdown)
-      final jsonStart = text.indexOf('[');
-      final jsonEnd = text.lastIndexOf(']');
-      if (jsonStart == -1 || jsonEnd == -1) return _getFallbackRecommendations();
-
-      final jsonStr = text.substring(jsonStart, jsonEnd + 1);
-
-      // Parse manual tanpa dart:convert untuk keamanan
-      final List<ServiceRecommendation> result = [];
-      final regex = RegExp(r'"service"\s*:\s*"([^"]+)".*?"reason"\s*:\s*"([^"]+)"', dotAll: true);
-      final matches = regex.allMatches(jsonStr);
-
-      for (final match in matches) {
-        final serviceName = match.group(1) ?? '';
-        final reason = match.group(2) ?? '';
-        final info = _serviceInfo[serviceName] ?? {'icon': '✨', 'price': 'Lihat detail'};
-
-        result.add(ServiceRecommendation(
-          serviceName: serviceName,
-          reason: reason,
-          icon: info['icon']!,
-          priceRange: info['price']!,
-        ));
-      }
-
-      return result.isNotEmpty ? result : _getFallbackRecommendations();
     } catch (_) {
       return _getFallbackRecommendations();
     }
@@ -161,7 +76,7 @@ Jawab HANYA dalam format JSON array berikut, tanpa teks lain:
     ];
   }
 
-  /// Fallback jika Gemini gagal
+  /// Fallback jika backend tidak bisa diakses
   List<ServiceRecommendation> _getFallbackRecommendations() {
     return const [
       ServiceRecommendation(
@@ -177,10 +92,10 @@ Jawab HANYA dalam format JSON array berikut, tanpa teks lain:
         priceRange: 'Rp 100.000 – 200.000',
       ),
       ServiceRecommendation(
-        serviceName: 'Deep Cleaning',
-        reason: 'Bersihkan hunian secara menyeluruh dan mendetail',
-        icon: '🏠',
-        priceRange: 'Rp 350.000 – 950.000',
+        serviceName: 'Cuci Sofa',
+        reason: 'Sofa bersih untuk ruang tamu yang nyaman',
+        icon: '🛋️',
+        priceRange: 'Rp 120.000 – 350.000',
       ),
     ];
   }
