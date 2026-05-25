@@ -433,4 +433,73 @@ class AuthService {
       return {'statusCode': 500, 'body': {'error': e.toString()}};
     }
   }
+
+  // ==========================================
+  // FITUR KARYAWAN (EMPLOYEE)
+  // ==========================================
+
+  /// Ambil profil karyawan by id
+  Future<Map<String, dynamic>> getEmployeeProfile(int employeeId) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/employee/profile/$employeeId'));
+      return {'statusCode': response.statusCode, 'body': json.decode(response.body)};
+    } catch (e) {
+      return {'statusCode': 500, 'body': {'error': e.toString()}};
+    }
+  }
+
+  /// Ambil semua order yang di-assign ke karyawan
+  Future<Map<String, dynamic>> getEmployeeOrders(int employeeId) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/employee/orders/$employeeId'));
+      return {'statusCode': response.statusCode, 'body': json.decode(response.body)};
+    } catch (e) {
+      return {'statusCode': 500, 'body': {'error': e.toString()}};
+    }
+  }
+
+  /// Karyawan update status order
+  Future<Map<String, dynamic>> updateOrderStatusByEmployee(
+      int orderId, String status, int employeeId) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/employee/orders/$orderId/status'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'status': status, 'employee_id': employeeId}),
+      );
+      return {'statusCode': response.statusCode, 'body': json.decode(response.body)};
+    } catch (e) {
+      return {'statusCode': 500, 'body': {'error': e.toString()}};
+    }
+  }
+
+  /// Ambil semua pesan chat per order
+  Future<Map<String, dynamic>> getEmployeeChat(int orderId) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/employee-chat/$orderId'));
+      return {'statusCode': response.statusCode, 'body': json.decode(response.body)};
+    } catch (e) {
+      return {'statusCode': 500, 'body': {'error': e.toString()}};
+    }
+  }
+
+  /// Kirim pesan chat karyawan-user
+  Future<Map<String, dynamic>> sendEmployeeChat(
+      int orderId, String senderRole, String senderId, String message) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/employee-chat'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'order_id': orderId,
+          'sender_role': senderRole,
+          'sender_id': senderId,
+          'message': message,
+        }),
+      );
+      return {'statusCode': response.statusCode, 'body': json.decode(response.body)};
+    } catch (e) {
+      return {'statusCode': 500, 'body': {'error': e.toString()}};
+    }
+  }
 }

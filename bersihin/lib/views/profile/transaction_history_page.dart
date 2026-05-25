@@ -18,7 +18,7 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
 
   List<dynamic> _orders = [];
   bool _isLoading = true;
-  String _filter = 'semua'; // semua | menunggu_pembayaran | menunggu_konfirmasi | pengerjaan | selesai
+  String _filter = 'semua'; // semua | menunggu_pembayaran | menunggu_konfirmasi | pengerjaan | selesai | cancelled
 
   @override
   void initState() { super.initState(); _fetch(); }
@@ -49,6 +49,7 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
       case 'menunggu_konfirmasi': return Colors.orange.shade600;
       case 'pengerjaan':          return Colors.blue.shade600;
       case 'selesai':             return const Color(0xFF025955);
+      case 'cancelled':           return Colors.grey.shade500;
       default:                    return Colors.grey.shade500;
     }
   }
@@ -59,6 +60,7 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
       case 'menunggu_konfirmasi': return 'Menunggu Konfirmasi';
       case 'pengerjaan':          return 'Dikerjakan';
       case 'selesai':             return 'Selesai';
+      case 'cancelled':           return 'Dibatalkan';
       default:                    return 'Diproses';
     }
   }
@@ -163,6 +165,7 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
                   _chip('menunggu_konfirmasi', 'Konfirmasi'),
                   _chip('pengerjaan', 'Dikerjakan'),
                   _chip('selesai', 'Selesai'),
+                  _chip('cancelled', 'Dibatalkan'),
                 ]),
               ),
             ),
@@ -227,9 +230,10 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
   Widget _buildCard(dynamic data) {
     final status = data['status'] as String? ?? '';
     final color  = _statusColor(status);
+    final isCancelled = status == 'cancelled';
 
     return GestureDetector(
-      onTap: () async {
+      onTap: isCancelled ? null : () async {
         final shouldRefresh = await Navigator.push(
           context,
           MaterialPageRoute(
@@ -253,77 +257,180 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
       child: Container(
         margin: const EdgeInsets.only(bottom: 14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isCancelled ? Colors.grey.shade50 : Colors.white,
           borderRadius: BorderRadius.circular(22),
           border: Border.all(color: color.withOpacity(0.15), width: 1.5),
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 14, offset: const Offset(0, 5))],
         ),
         child: Padding(
           padding: const EdgeInsets.all(18),
-          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            // Ikon layanan
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: color.withOpacity(0.2)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              // Ikon layanan
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: color.withOpacity(0.2)),
+                ),
+                child: Icon(_serviceIcon(data['service_name'] ?? ''), color: color, size: 26),
               ),
-              child: Icon(_serviceIcon(data['service_name'] ?? ''), color: color, size: 26),
-            ),
-            const SizedBox(width: 16),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              // Nama layanan + badge status
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                Expanded(
-                  child: Text(data['service_name'] ?? '',
-                      style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.bold, color: toscaDark),
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: color.withOpacity(0.3)),
+              const SizedBox(width: 16),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                // Nama layanan + badge status
+                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                  Expanded(
+                    child: Text(data['service_name'] ?? '',
+                        style: GoogleFonts.outfit(
+                          fontSize: 15, fontWeight: FontWeight.bold,
+                          color: isCancelled ? Colors.grey.shade500 : toscaDark),
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
                   ),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Container(width: 6, height: 6,
-                        decoration: BoxDecoration(shape: BoxShape.circle, color: color)),
-                    const SizedBox(width: 5),
-                    Text(_statusLabel(status),
-                        style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.bold, color: color)),
-                  ]),
-                ),
-              ]),
-              const SizedBox(height: 6),
-              // Jadwal
-              Row(children: [
-                Icon(Icons.calendar_today_rounded, size: 13, color: Colors.grey.shade400),
-                const SizedBox(width: 5),
-                Text('${data['schedule_date'] ?? ''} • ${data['schedule_time'] ?? ''}',
-                    style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey.shade500)),
-              ]),
-              const SizedBox(height: 8),
-              // Total + metode bayar
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                Text(_formatCurrency(data['total_amount']),
-                    style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w900, color: toscaDark)),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(8),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: color.withOpacity(0.3)),
+                    ),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Container(width: 6, height: 6,
+                          decoration: BoxDecoration(shape: BoxShape.circle, color: color)),
+                      const SizedBox(width: 5),
+                      Text(_statusLabel(status),
+                          style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.bold, color: color)),
+                    ]),
                   ),
-                  child: Text((data['payment_method'] ?? '').toString().replaceAll('_', ' ').toUpperCase(),
-                      style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey.shade600)),
+                ]),
+                const SizedBox(height: 6),
+                // Jadwal
+                Row(children: [
+                  Icon(Icons.calendar_today_rounded, size: 13, color: Colors.grey.shade400),
+                  const SizedBox(width: 5),
+                  Text('${data['schedule_date'] ?? ''} • ${data['schedule_time'] ?? ''}',
+                      style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey.shade500)),
+                ]),
+                const SizedBox(height: 8),
+                // Total + metode bayar
+                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                  Text(_formatCurrency(data['total_amount']),
+                      style: GoogleFonts.outfit(
+                        fontSize: 16, fontWeight: FontWeight.w900,
+                        color: isCancelled ? Colors.grey.shade400 : toscaDark)),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text((data['payment_method'] ?? '').toString().replaceAll('_', ' ').toUpperCase(),
+                        style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey.shade600)),
+                  ),
+                ]),
+              ])),
+            ]),
+
+            // Keterangan dibatalkan
+            if (isCancelled) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.red.shade100),
                 ),
-              ]),
-            ])),
+                child: Row(children: [
+                  Icon(Icons.cancel_outlined, size: 14, color: Colors.red.shade400),
+                  const SizedBox(width: 8),
+                  Text('Pesanan ini telah dibatalkan (timeout pembayaran)',
+                    style: GoogleFonts.outfit(fontSize: 11, color: Colors.red.shade400)),
+                ]),
+              ),
+            ],
+
+            // Chat karyawan (read-only untuk user, hanya tampil jika ada chat)
+            if (!isCancelled && (status == 'pengerjaan' || status == 'selesai'))
+              _buildChatPreview(data['id'] as int? ?? 0),
           ]),
         ),
       ),
+    );
+  }
+
+  // ── Chat preview (read-only) ──────────────────────────────────
+  Widget _buildChatPreview(int orderId) {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _svc.getEmployeeChat(orderId),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox.shrink();
+        final chats = snapshot.data?['body']?['data'] as List<dynamic>? ?? [];
+        if (chats.isEmpty) return const SizedBox.shrink();
+
+        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const SizedBox(height: 12),
+          const Divider(color: Color(0xFFE0E0E0)),
+          const SizedBox(height: 8),
+          Row(children: [
+            Icon(Icons.chat_bubble_outline_rounded, size: 14, color: toscaMedium),
+            const SizedBox(width: 6),
+            Text('Chat Karyawan',
+              style: GoogleFonts.outfit(
+                fontSize: 12, fontWeight: FontWeight.bold, color: toscaMedium)),
+          ]),
+          const SizedBox(height: 8),
+          // Tampilkan max 3 pesan terakhir
+          ...chats.reversed.take(3).toList().reversed.map((chat) {
+            final isEmployee = (chat['sender_role'] as String? ?? '') == 'employee';
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                mainAxisAlignment: isEmployee ? MainAxisAlignment.start : MainAxisAlignment.end,
+                children: [
+                  if (isEmployee) ...[
+                    CircleAvatar(
+                      radius: 10,
+                      backgroundColor: toscaLight.withOpacity(0.2),
+                      child: Icon(Icons.engineering_rounded, size: 11, color: toscaDark),
+                    ),
+                    const SizedBox(width: 6),
+                  ],
+                  Flexible(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: isEmployee
+                          ? toscaDark.withOpacity(0.08)
+                          : Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(chat['message'] ?? '',
+                        style: GoogleFonts.outfit(fontSize: 11, color: Colors.grey.shade700),
+                        maxLines: 2, overflow: TextOverflow.ellipsis),
+                    ),
+                  ),
+                  if (!isEmployee) ...[
+                    const SizedBox(width: 6),
+                    CircleAvatar(
+                      radius: 10,
+                      backgroundColor: Colors.grey.shade200,
+                      child: Icon(Icons.person_rounded, size: 11, color: Colors.grey.shade600),
+                    ),
+                  ],
+                ],
+              ),
+            );
+          }),
+          if (chats.length > 3)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text('+ ${chats.length - 3} pesan lainnya',
+                style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey.shade400)),
+            ),
+        ]);
+      },
     );
   }
 }

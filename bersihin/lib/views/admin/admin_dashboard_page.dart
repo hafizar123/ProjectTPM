@@ -49,8 +49,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     String nextStatus = '';
     if (currentStatus == 'menunggu_konfirmasi') {
       nextStatus = 'pengerjaan';
-    } else if (currentStatus == 'pengerjaan')     nextStatus = 'selesai';
-    else return;
+    } else return; // Admin tidak lagi bisa selesaikan — itu tugas karyawan
 
     final response = await _authService.updateOrderStatus(orderId, nextStatus);
     if (response['statusCode'] == 200) {
@@ -60,7 +59,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         final svc = order['service_name'] as String? ?? 'Layanan';
         if (nextStatus == 'pengerjaan') {
           await NotificationService().showOrderConfirmed(svc);
-        } else if (nextStatus == 'selesai') await NotificationService().showOrderDone(svc);
+        }
       }
       _fetchDashboardData();
     } else {
@@ -82,6 +81,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       case 'menunggu_konfirmasi': return Colors.orange.shade600;
       case 'pengerjaan':          return Colors.blue.shade600;
       case 'selesai':             return const Color(0xFF025955);
+      case 'cancelled':           return Colors.grey.shade500;
       default:                    return Colors.grey.shade500;
     }
   }
@@ -92,6 +92,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       case 'menunggu_konfirmasi': return 'Menunggu Konfirmasi';
       case 'pengerjaan':          return 'Dikerjakan';
       case 'selesai':             return 'Selesai';
+      case 'cancelled':           return 'Dibatalkan';
       default:                    return 'Diproses';
     }
   }
@@ -366,6 +367,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               _filterChip('menunggu_konfirmasi', 'Konfirmasi'),
               _filterChip('pengerjaan', 'Dikerjakan'),
               _filterChip('selesai', 'Selesai'),
+              _filterChip('cancelled', 'Dibatalkan'),
             ]),
           ),
         ]),
@@ -451,10 +453,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     final status     = order['status'] as String? ?? '';
     final color      = _statusColor(status);
     final label      = _statusLabel(status);
-    String btnText   = '';
-    if (status == 'menunggu_konfirmasi') {
-      btnText = 'KONFIRMASI BAYAR';
-    } else if (status == 'pengerjaan')     btnText = 'SELESAIKAN PESANAN';
+    final employeeName = order['employee_name'] as String? ?? '';
+    // Admin hanya bisa konfirmasi pembayaran; selesaikan dilakukan karyawan
+    final bool showConfirmBtn = status == 'menunggu_konfirmasi';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -515,6 +516,36 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 style: GoogleFonts.outfit(fontSize: 12, color: Colors.white54)),
           ]),
 
+          // Info karyawan yang di-assign
+          if (employeeName.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Row(children: [
+              Icon(Icons.engineering_rounded, size: 13, color: toscaLight),
+              const SizedBox(width: 5),
+              Text('Karyawan: $employeeName',
+                  style: GoogleFonts.outfit(fontSize: 12, color: toscaLight, fontWeight: FontWeight.w600)),
+            ]),
+          ] else if (['menunggu_konfirmasi', 'pengerjaan', 'selesai'].contains(status)) ...[
+            const SizedBox(height: 6),
+            Row(children: [
+              Icon(Icons.engineering_rounded, size: 13, color: Colors.white38),
+              const SizedBox(width: 5),
+              Text('Karyawan: Belum di-assign',
+                  style: GoogleFonts.outfit(fontSize: 12, color: Colors.white38)),
+            ]),
+          ],
+
+          // Info "Diselesaikan oleh karyawan" jika sudah selesai
+          if (status == 'selesai') ...[
+            const SizedBox(height: 6),
+            Row(children: [
+              Icon(Icons.check_circle_rounded, size: 13, color: toscaLight),
+              const SizedBox(width: 5),
+              Text('Diselesaikan oleh karyawan',
+                  style: GoogleFonts.outfit(fontSize: 12, color: toscaLight)),
+            ]),
+          ],
+
           const SizedBox(height: 14),
 
           // Metode bayar + total
@@ -526,13 +557,12 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             ]),
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
               Text('Total Tagihan', style: GoogleFonts.outfit(fontSize: 10, color: Colors.white38)),
-              // Tampilkan dalam mata uang yang dipilih user saat order
               _buildOrderTotal(order),
             ]),
           ]),
 
-          // Tombol aksi
-          if (btnText.isNotEmpty) ...[
+          // Tombol konfirmasi pembayaran (admin saja)
+          if (showConfirmBtn) ...[
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity, height: 46,
@@ -550,7 +580,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   ),
                   child: Container(
                     alignment: Alignment.center,
-                    child: Text(btnText,
+                    child: Text('KONFIRMASI BAYAR',
                         style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white,
                             fontSize: 13, letterSpacing: 0.8)),
                   ),

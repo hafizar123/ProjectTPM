@@ -8,6 +8,7 @@ import '../../services/biometric_service.dart';
 import '../../services/notification_service.dart';
 import '../home/home_page.dart';
 import '../admin/admin_dashboard_page.dart';
+import '../employee/employee_dashboard_page.dart';
 import 'register_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -262,22 +263,40 @@ class _LoginPageState extends State<LoginPage> {
       setState(() => _isLoading = false);
 
       if (response['statusCode'] == 200) {
-        // Gunakan email dari response server (bukan input, karena bisa jadi username)
-        final returnedEmail = response['body']['user']?['email'] ?? inputText;
-        final returnedUsername = response['body']['user']?['username'] ?? response['body']['username'] ?? '';
-        await _authController.saveSession(returnedEmail, returnedUsername);
-        // Simpan password untuk keperluan biometrik
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('saved_password', inputPassword);
-        // Batalkan notifikasi guest karena sudah login
-        await NotificationService().cancelGuestNotifications();
-        if (!mounted) return;
-        _showNotif('Login berhasil', isError: false);
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const HomePage()),
-          (route) => false,
-        );
+        final role = response['body']['role'] as String? ?? 'user';
+
+        if (role == 'employee') {
+          // Simpan sesi karyawan
+          final empUser = response['body']['user'] as Map<String, dynamic>? ?? {};
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setInt('employee_id', (empUser['id'] as num?)?.toInt() ?? 0);
+          await prefs.setString('employee_name', empUser['name']?.toString() ?? empUser['username']?.toString() ?? '');
+          await prefs.setString('employee_email', empUser['email']?.toString() ?? '');
+          if (!mounted) return;
+          _showNotif('Selamat datang, ${empUser['name'] ?? 'Karyawan'}', isError: false);
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const EmployeeDashboardPage()),
+            (route) => false,
+          );
+        } else {
+          // Gunakan email dari response server (bisa jadi username saat input)
+          final returnedEmail = response['body']['user']?['email'] ?? inputText;
+          final returnedUsername = response['body']['user']?['username'] ?? response['body']['username'] ?? '';
+          await _authController.saveSession(returnedEmail, returnedUsername);
+          // Simpan password untuk keperluan biometrik
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('saved_password', inputPassword);
+          // Batalkan notifikasi guest karena sudah login
+          await NotificationService().cancelGuestNotifications();
+          if (!mounted) return;
+          _showNotif('Login berhasil', isError: false);
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const HomePage()),
+            (route) => false,
+          );
+        }
       } else {
         _showNotif('Email/username atau kata sandi salah', isError: true);
       }

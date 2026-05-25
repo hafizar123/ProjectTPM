@@ -66,7 +66,7 @@ app.post('/api/login', (req, res) => {
         return res.status(400).json({ message: 'Email/username dan kata sandi wajib diisi' });
     }
 
-    // Support login dengan email ATAU username
+    // Support login dengan email ATAU username — cek profiles dulu
     const query = 'SELECT * FROM profiles WHERE email = ? OR username = ?';
     db.query(query, [email, email], async (err, results) => {
         if (err) {
@@ -74,28 +74,61 @@ app.post('/api/login', (req, res) => {
             return res.status(500).json({ message: 'Terjadi kesalahan pada server' });
         }
 
-        if (results.length === 0) {
-            return res.status(401).json({ message: 'Email/username tidak ditemukan' });
+        if (results.length > 0) {
+            const user = results[0];
+            const isMatch = await bcrypt.compare(password, user.password);
+            if (!isMatch) {
+                return res.status(401).json({ message: 'Kata sandi salah' });
+            }
+            const token = jwt.sign(
+                { id: user.id, username: user.username, email: user.email },
+                process.env.JWT_SECRET,
+                { expiresIn: '1h' }
+            );
+            return res.status(200).json({
+                message: 'Login berhasil',
+                token: token,
+                role: 'user',
+                user: { username: user.username, email: user.email }
+            });
         }
 
-        const user = results[0];
+        // Tidak ketemu di profiles — cek tabel employees
+        const empQuery = 'SELECT * FROM employees WHERE (email = ? OR username = ?) AND is_active = 1';
+        db.query(empQuery, [email, email], async (err2, empResults) => {
+            if (err2) {
+                console.error('Database error (employees):', err2);
+                return res.status(500).json({ message: 'Terjadi kesalahan pada server' });
+            }
 
-        const isMatch = await bcrypt.compare(password, user.password);
+            if (empResults.length === 0) {
+                return res.status(401).json({ message: 'Email/username tidak ditemukan' });
+            }
 
-        if (!isMatch) {
-            return res.status(401).json({ message: 'Kata sandi salah' });
-        }
+            const emp = empResults[0];
+            const isMatch = await bcrypt.compare(password, emp.password);
+            if (!isMatch) {
+                return res.status(401).json({ message: 'Kata sandi salah' });
+            }
 
-        const token = jwt.sign(
-            { id: user.id, username: user.username, email: user.email },
-            process.env.JWT_SECRET,
-            { expiresIn: '1h' }
-        );
+            const token = jwt.sign(
+                { id: emp.id, username: emp.username, email: emp.email, role: 'employee' },
+                process.env.JWT_SECRET,
+                { expiresIn: '8h' }
+            );
 
-        res.status(200).json({
-            message: 'Login berhasil',
-            token: token,
-            user: { username: user.username, email: user.email }
+            return res.status(200).json({
+                message: 'Login berhasil',
+                token: token,
+                role: 'employee',
+                user: {
+                    id: emp.id,
+                    username: emp.username,
+                    email: emp.email,
+                    name: emp.name,
+                    phone: emp.phone
+                }
+            });
         });
     });
 });
@@ -307,8 +340,14 @@ app.put('/api/orders/:id/status', (req, res) => {
     const orderId = req.params.id;
     const sql = "UPDATE orders SET status = ? WHERE id = ?";
 
-    db.query(sql, [status, orderId], (err, result) => {
+    db.query(sql, [status, orderId], (err) => {
         if (err) return res.status(500).json({ error: err.message });
+
+        // Auto-assign karyawan saat status berubah ke menunggu_konfirmasi
+        if (status === 'menunggu_konfirmasi') {
+            _autoAssignEmployee(orderId);
+        }
+
         res.status(200).json({ message: `Status berhasil diperbarui menjadi ${status}` });
     });
 });
@@ -340,7 +379,12 @@ app.post('/api/admin/login', (req, res) => {
 
 // Mengambil semua pesanan untuk dashboard admin
 app.get('/api/admin/orders', (req, res) => {
-    const sql = "SELECT * FROM orders ORDER BY created_at DESC";
+    const sql = `
+        SELECT o.*, e.name AS employee_name, e.phone AS employee_phone
+        FROM orders o
+        LEFT JOIN employees e ON o.employee_id = e.id
+        ORDER BY o.created_at DESC
+    `;
     db.query(sql, (err, results) => {
         if (err) return res.status(500).json({ error: err.message });
         res.status(200).json({ data: results });
@@ -704,6 +748,168 @@ function generateReason(serviceName, serviceCount) {
 }
 
 
+
+// ==========================================
+// RUTE KARYAWAN (EMPLOYEE)
+// ==========================================
+
+/**
+ * Fungsi internal: auto-assign karyawan ke order.
+ * Dipanggil saat status order berubah ke 'menunggu_konfirmasi'.
+ */
+function _autoAssignEmployee(orderId) {
+    // Ambil data order dulu
+    db.query('SELECT * FROM orders WHERE id = ?', [orderId], (err, orders) => {
+        if (err || orders.length === 0) return;
+        const order = orders[0];
+        const schedDate = order.schedule_date;
+        const schedTime = order.schedule_time;
+
+        // Ambil semua karyawan aktif
+        db.query('SELECT id FROM employees WHERE is_active = 1', (err2, employees) => {
+            if (err2 || employees.length === 0) return;
+
+            // Hitung total order di slot waktu yang sama (max 10)
+            const countSql = `
+                SELECT COUNT(*) AS total FROM orders
+                WHERE schedule_date = ? AND schedule_time = ?
+                AND status NOT IN ('cancelled', 'menunggu_pembayaran')
+            `;
+            db.query(countSql, [schedDate, schedTime], (err3, countRes) => {
+                if (err3) return;
+                const totalSlot = countRes[0].total;
+                if (totalSlot > 10) return; // slot penuh
+
+                // Hitung beban tiap karyawan di slot yang sama
+                const loadSql = `
+                    SELECT employee_id, COUNT(*) AS cnt FROM orders
+                    WHERE schedule_date = ? AND schedule_time = ?
+                    AND employee_id IS NOT NULL
+                    AND status NOT IN ('cancelled', 'menunggu_pembayaran')
+                    GROUP BY employee_id
+                `;
+                db.query(loadSql, [schedDate, schedTime], (err4, loads) => {
+                    if (err4) return;
+
+                    const loadMap = {};
+                    for (const row of loads) {
+                        loadMap[row.employee_id] = row.cnt;
+                    }
+
+                    // Cari karyawan dengan beban paling sedikit
+                    let minLoad = Infinity;
+                    let candidates = [];
+                    for (const emp of employees) {
+                        const load = loadMap[emp.id] || 0;
+                        if (load < minLoad) {
+                            minLoad = load;
+                            candidates = [emp.id];
+                        } else if (load === minLoad) {
+                            candidates.push(emp.id);
+                        }
+                    }
+
+                    // Random jika beban sama
+                    const chosen = candidates[Math.floor(Math.random() * candidates.length)];
+
+                    // Assign ke order
+                    db.query('UPDATE orders SET employee_id = ? WHERE id = ?', [chosen, orderId], () => {});
+                });
+            });
+        });
+    });
+}
+
+// Ambil profil karyawan by id
+app.get('/api/employee/profile/:id', (req, res) => {
+    const id = req.params.id;
+    const sql = 'SELECT id, name, username, email, phone, is_active, created_at FROM employees WHERE id = ?';
+    db.query(sql, [id], (err, results) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (results.length === 0) return res.status(404).json({ message: 'Karyawan tidak ditemukan' });
+        res.status(200).json({ data: results[0] });
+    });
+});
+
+// Ambil semua order yang di-assign ke karyawan
+app.get('/api/employee/orders/:employeeId', (req, res) => {
+    const employeeId = req.params.employeeId;
+    const sql = `
+        SELECT o.*, e.name AS employee_name
+        FROM orders o
+        LEFT JOIN employees e ON o.employee_id = e.id
+        WHERE o.employee_id = ?
+        ORDER BY o.created_at DESC
+    `;
+    db.query(sql, [employeeId], (err, results) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.status(200).json({ data: results });
+    });
+});
+
+// Karyawan update status order (pengerjaan → selesai)
+app.put('/api/employee/orders/:id/status', (req, res) => {
+    const { status, employee_id } = req.body;
+    const orderId = req.params.id;
+
+    // Validasi: hanya boleh update ke 'pengerjaan' atau 'selesai'
+    if (!['pengerjaan', 'selesai'].includes(status)) {
+        return res.status(400).json({ error: 'Status tidak valid untuk karyawan' });
+    }
+
+    const sql = 'UPDATE orders SET status = ? WHERE id = ? AND employee_id = ?';
+    db.query(sql, [status, orderId, employee_id], (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (result.affectedRows === 0) {
+            return res.status(403).json({ error: 'Order tidak ditemukan atau bukan milik karyawan ini' });
+        }
+        res.status(200).json({ message: `Status berhasil diperbarui menjadi ${status}` });
+    });
+});
+
+// Ambil semua pesan chat per order
+app.get('/api/employee-chat/:orderId', (req, res) => {
+    const orderId = req.params.orderId;
+    const sql = 'SELECT * FROM employee_chats WHERE order_id = ? ORDER BY created_at ASC';
+    db.query(sql, [orderId], (err, results) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.status(200).json({ data: results });
+    });
+});
+
+// Kirim pesan chat (sender_role: 'employee' atau 'user')
+app.post('/api/employee-chat', (req, res) => {
+    const { order_id, sender_role, sender_id, message } = req.body;
+    if (!order_id || !sender_role || !sender_id || !message) {
+        return res.status(400).json({ error: 'Data pesan tidak lengkap' });
+    }
+    const sql = 'INSERT INTO employee_chats (order_id, sender_role, sender_id, message) VALUES (?, ?, ?, ?)';
+    db.query(sql, [order_id, sender_role, sender_id, message], (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.status(201).json({ message: 'Pesan berhasil dikirim', id: result.insertId });
+    });
+});
+
+// Auto-cancel order menunggu_pembayaran yang sudah > 30 menit
+app.post('/api/orders/auto-cancel', (req, res) => {
+    const sql = `
+        UPDATE orders
+        SET status = 'cancelled', cancelled_at = NOW()
+        WHERE status = 'menunggu_pembayaran'
+        AND created_at < DATE_SUB(NOW(), INTERVAL 30 MINUTE)
+    `;
+    db.query(sql, (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.status(200).json({
+            message: 'Auto-cancel selesai',
+            cancelled: result.affectedRows
+        });
+    });
+});
+
+// ==========================================
+// END RUTE KARYAWAN
+// ==========================================
 
 app.get('/', (req, res) => {
     res.send('Server Bersih.In berjalan');
