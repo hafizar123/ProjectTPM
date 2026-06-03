@@ -125,8 +125,8 @@ app.post('/api/login', (req, res) => {
                     id: emp.id,
                     username: emp.username,
                     email: emp.email,
-                    name: emp.name,
-                    phone: emp.phone
+                    name: emp.nama,
+                    phone: emp.no_hp
                 }
             });
         });
@@ -352,11 +352,16 @@ app.put('/api/orders/:id/status', (req, res) => {
     });
 });
 
-// Mengambil daftar pesanan pengguna
+// Mengambil daftar pesanan pengguna (dengan JOIN employee_name)
 app.get('/api/orders/:email', (req, res) => {
     const email = req.params.email;
-    const sql = "SELECT * FROM orders WHERE user_email = ? ORDER BY created_at DESC";
-
+    const sql = `
+        SELECT o.*, e.nama AS employee_name
+        FROM orders o
+        LEFT JOIN employees e ON o.employee_id = e.id
+        WHERE o.user_email = ?
+        ORDER BY o.created_at DESC
+    `;
     db.query(sql, [email], (err, results) => {
         if (err) return res.status(500).json({ error: 'Terjadi kesalahan pada database' });
         res.status(200).json({ data: results });
@@ -380,7 +385,7 @@ app.post('/api/admin/login', (req, res) => {
 // Mengambil semua pesanan untuk dashboard admin
 app.get('/api/admin/orders', (req, res) => {
     const sql = `
-        SELECT o.*, e.name AS employee_name, e.phone AS employee_phone
+        SELECT o.*, e.nama AS employee_name, e.no_hp AS employee_phone
         FROM orders o
         LEFT JOIN employees e ON o.employee_id = e.id
         ORDER BY o.created_at DESC
@@ -835,7 +840,7 @@ app.get('/api/employee/profile/:id', (req, res) => {
 app.get('/api/employee/orders/:employeeId', (req, res) => {
     const employeeId = req.params.employeeId;
     const sql = `
-        SELECT o.*, e.name AS employee_name
+        SELECT o.*, e.nama AS employee_name
         FROM orders o
         LEFT JOIN employees e ON o.employee_id = e.id
         WHERE o.employee_id = ?

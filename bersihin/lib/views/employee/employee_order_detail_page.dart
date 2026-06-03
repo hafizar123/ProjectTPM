@@ -1,5 +1,10 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
+import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/auth_service.dart';
 
@@ -14,14 +19,15 @@ class EmployeeOrderDetailPage extends StatefulWidget {
   });
 
   @override
-  State<EmployeeOrderDetailPage> createState() => _EmployeeOrderDetailPageState();
+  State<EmployeeOrderDetailPage> createState() =>
+      _EmployeeOrderDetailPageState();
 }
 
 class _EmployeeOrderDetailPageState extends State<EmployeeOrderDetailPage> {
-  static const Color _bg       = Color(0xFF060E1A);
-  static const Color _surface  = Color(0xFF0D1B2A);
-  static const Color _card     = Color(0xFF112233);
-  static const Color _accent   = Color(0xFF00D4AA);
+  static const Color _bg = Color(0xFF060E1A);
+  static const Color _surface = Color(0xFF0D1B2A);
+  static const Color _card = Color(0xFF112233);
+  static const Color _accent = Color(0xFF00D4AA);
   static const Color _accentDim = Color(0xFF025955);
 
   final AuthService _svc = AuthService();
@@ -33,6 +39,11 @@ class _EmployeeOrderDetailPageState extends State<EmployeeOrderDetailPage> {
   bool _isSending = false;
   bool _isUpdating = false;
   String _employeeName = '';
+  Timer? _pollTimer;
+
+  // Maps state
+  LatLng? _orderLocation;
+  bool _mapLoading = true;
 
   @override
   void initState() {
@@ -40,10 +51,14 @@ class _EmployeeOrderDetailPageState extends State<EmployeeOrderDetailPage> {
     _order = Map<String, dynamic>.from(widget.order);
     _loadEmployee();
     _fetchChats();
+    _resolveLocation();
+    // Polling chat setiap 3 detik seperti live chat admin
+    _pollTimer = Timer.periodic(const Duration(seconds: 3), (_) => _fetchChats());
   }
 
   @override
   void dispose() {
+    _pollTimer?.cancel();
     _chatCtrl.dispose();
     _scrollCtrl.dispose();
     super.dispose();
@@ -57,12 +72,16 @@ class _EmployeeOrderDetailPageState extends State<EmployeeOrderDetailPage> {
   }
 
   Future<void> _fetchChats() async {
-    final orderId = _order['id'] as int? ?? 0;
+    final orderId =
+        int.tryParse(_order['id']?.toString() ?? '0') ?? 0;
     if (orderId == 0) return;
     final res = await _svc.getEmployeeChat(orderId);
     if (mounted && res['statusCode'] == 200) {
-      setState(() => _chats = res['body']['data'] ?? []);
-      _scrollToBottom();
+      final newChats = res['body']['data'] as List? ?? [];
+      final wasAtBottom = !_scrollCtrl.hasClients ||
+          _scrollCtrl.position.pixels >= _scrollCtrl.position.maxScrollExtent - 80;
+      setState(() => _chats = newChats);
+      if (wasAtBottom) _scrollToBottom();
     }
   }
 
@@ -80,8 +99,10 @@ class _EmployeeOrderDetailPageState extends State<EmployeeOrderDetailPage> {
 
   Future<void> _updateStatus(String newStatus) async {
     setState(() => _isUpdating = true);
-    final orderId = _order['id'] as int? ?? 0;
-    final res = await _svc.updateOrderStatusByEmployee(orderId, newStatus, widget.employeeId);
+    final orderId =
+        int.tryParse(_order['id']?.toString() ?? '0') ?? 0;
+    final res = await _svc.updateOrderStatusByEmployee(
+        orderId, newStatus, widget.employeeId);
     setState(() => _isUpdating = false);
 
     if (res['statusCode'] == 200) {
@@ -99,7 +120,8 @@ class _EmployeeOrderDetailPageState extends State<EmployeeOrderDetailPage> {
     setState(() => _isSending = true);
     _chatCtrl.clear();
 
-    final orderId = _order['id'] as int? ?? 0;
+    final orderId =
+        int.tryParse(_order['id']?.toString() ?? '0') ?? 0;
     final res = await _svc.sendEmployeeChat(
       orderId,
       'employee',
@@ -116,33 +138,105 @@ class _EmployeeOrderDetailPageState extends State<EmployeeOrderDetailPage> {
     }
   }
 
+  Future<void> _resolveLocation() async {
+    // Coba dari lat/lng langsung di order (kalau ada)
+    final lat = double.tryParse(_order['lat']?.toString() ?? '');
+    final lng = double.tryParse(_order['lng']?.toString() ?? '');
+    if (lat != null && lng != null) {
+      if (mounted) {
+        setState(() {
+          _orderLocation = LatLng(lat, lng);
+          _mapLoading = false;
+        });
+      }
+      return;
+    }
+
+    // Fallback: geocode dari address string via Nominatim
+    final address = (_order['address'] ?? '').toString().trim();
+    if (address.isEmpty) {
+      if (mounted) setState(() => _mapLoading = false);
+      return;
+    }
+
+    try {
+      // Bersihkan alamat — ambil bagian yang lebih pendek jika terlalu panjang
+      String searchQuery = address;
+      if (address.contains(',')) {
+        // Ambil 3 komponen pertama untuk hasil lebih akurat
+        final parts = address.split(',');
+        searchQuery = parts.take(3).join(',').trim();
+      }
+
+      final url = Uri.parse(
+          'https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent(searchQuery)}&format=json&limit=1&countrycodes=id');
+      final res = await http
+          .get(url, headers: {'User-Agent': 'BersihInApp_Employee/1.0'})
+          .timeout(const Duration(seconds: 10));
+
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body) as List;
+        if (data.isNotEmpty) {
+          final lat2 = double.tryParse(data[0]['lat'] ?? '');
+          final lng2 = double.tryParse(data[0]['lon'] ?? '');
+          if (lat2 != null && lng2 != null && mounted) {
+            setState(() {
+              _orderLocation = LatLng(lat2, lng2);
+              _mapLoading = false;
+            });
+            return;
+          }
+        }
+      }
+    } catch (_) {}
+
+    // Ultimate fallback: koordinat default UPNYK Yogyakarta
+    if (mounted) {
+      setState(() {
+        _orderLocation = const LatLng(-7.7602, 110.4086);
+        _mapLoading = false;
+      });
+    }
+  }
+
   void _showSnack(String msg, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg, style: GoogleFonts.outfit(color: Colors.white)),
       backgroundColor: isError ? Colors.redAccent : _accentDim,
       behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     ));
   }
 
   // ── Helpers ───────────────────────────────────────────────────
   Color _statusColor(String s) {
     switch (s) {
-      case 'menunggu_konfirmasi': return Colors.orange.shade400;
-      case 'pengerjaan':          return Colors.blue.shade400;
-      case 'selesai':             return _accent;
-      case 'cancelled':           return Colors.red.shade400;
-      default:                    return Colors.grey.shade500;
+      case 'menunggu_konfirmasi':
+        return Colors.orange.shade400;
+      case 'pengerjaan':
+        return Colors.blue.shade400;
+      case 'selesai':
+        return _accent;
+      case 'cancelled':
+        return Colors.red.shade400;
+      default:
+        return Colors.grey.shade500;
     }
   }
 
   String _statusLabel(String s) {
     switch (s) {
-      case 'menunggu_konfirmasi': return 'Menunggu Konfirmasi';
-      case 'pengerjaan':          return 'Sedang Dikerjakan';
-      case 'selesai':             return 'Selesai';
-      case 'cancelled':           return 'Dibatalkan';
-      default:                    return s;
+      case 'menunggu_konfirmasi':
+        return 'Menunggu Konfirmasi';
+      case 'pengerjaan':
+        return 'Sedang Dikerjakan';
+      case 'selesai':
+        return 'Selesai';
+      case 'cancelled':
+        return 'Dibatalkan';
+      default:
+        return s;
     }
   }
 
@@ -152,28 +246,34 @@ class _EmployeeOrderDetailPageState extends State<EmployeeOrderDetailPage> {
 
     // Cek apakah waktu sekarang sudah >= jam order
     try {
-      final dateStr  = _order['schedule_date'] as String? ?? '';
-      final timeStr  = _order['schedule_time'] as String? ?? '';
+      final dateStr = _order['schedule_date'] as String? ?? '';
+      final timeStr = _order['schedule_time'] as String? ?? '';
       if (dateStr.isEmpty || timeStr.isEmpty) return true;
 
       final parts = timeStr.split(':');
-      final hour   = int.tryParse(parts[0]) ?? 0;
-      final minute = int.tryParse(parts.length > 1 ? parts[1] : '0') ?? 0;
+      final hour = int.tryParse(parts[0]) ?? 0;
+      final minute =
+          int.tryParse(parts.length > 1 ? parts[1] : '0') ?? 0;
 
       final dateParts = dateStr.split('-');
-      final year  = int.tryParse(dateParts[0]) ?? 2000;
-      final month = int.tryParse(dateParts.length > 1 ? dateParts[1] : '1') ?? 1;
-      final day   = int.tryParse(dateParts.length > 2 ? dateParts[2] : '1') ?? 1;
+      final year = int.tryParse(dateParts[0]) ?? 2000;
+      final month =
+          int.tryParse(dateParts.length > 1 ? dateParts[1] : '1') ?? 1;
+      final day =
+          int.tryParse(dateParts.length > 2 ? dateParts[2] : '1') ?? 1;
 
       final schedDt = DateTime(year, month, day, hour, minute);
-      return DateTime.now().isAfter(schedDt) || DateTime.now().isAtSameMomentAs(schedDt);
+      return DateTime.now().isAfter(schedDt) ||
+          DateTime.now().isAtSameMomentAs(schedDt);
     } catch (_) {
       return true;
     }
   }
 
-  bool get _isOrderDone => (_order['status'] as String? ?? '') == 'selesai';
-  bool get _isOrderCancelled => (_order['status'] as String? ?? '') == 'cancelled';
+  bool get _isOrderDone =>
+      (_order['status'] as String? ?? '') == 'selesai';
+  bool get _isOrderCancelled =>
+      (_order['status'] as String? ?? '') == 'cancelled';
 
   @override
   Widget build(BuildContext context) {
@@ -186,19 +286,28 @@ class _EmployeeOrderDetailPageState extends State<EmployeeOrderDetailPage> {
         backgroundColor: _surface,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white70, size: 18),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              color: Colors.white70, size: 18),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text('Detail Order',
-          style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+            style: GoogleFonts.outfit(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 16)),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(height: 1,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.transparent, _accent.withOpacity(0.4), Colors.transparent],
-              ),
-            )),
+          child: Container(
+              height: 1,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.transparent,
+                    _accent.withOpacity(0.4),
+                    Colors.transparent
+                  ],
+                ),
+              )),
         ),
       ),
       body: Column(children: [
@@ -207,19 +316,14 @@ class _EmployeeOrderDetailPageState extends State<EmployeeOrderDetailPage> {
             controller: _scrollCtrl,
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.all(16),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               // ── Header card ──────────────────────────────────
               _buildHeaderCard(statusColor, status),
               const SizedBox(height: 16),
 
               // ── Lokasi ───────────────────────────────────────
-              _buildSection('Lokasi', Icons.location_on_rounded, [
-                _infoRow(Icons.home_outlined, 'Alamat', _order['address'] ?? '-'),
-                if ((_order['house_type'] ?? '').toString().isNotEmpty)
-                  _infoRow(Icons.house_outlined, 'Tipe Rumah', _order['house_type'] ?? '-'),
-                if ((_order['patokan'] ?? '').toString().isNotEmpty)
-                  _infoRow(Icons.flag_outlined, 'Patokan', _order['patokan'] ?? '-'),
-              ]),
+              _buildLocationSection(),
               const SizedBox(height: 16),
 
               // ── Tombol aksi ──────────────────────────────────
@@ -254,36 +358,42 @@ class _EmployeeOrderDetailPageState extends State<EmployeeOrderDetailPage> {
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Expanded(
             child: Text(_order['service_name'] ?? '',
-              style: GoogleFonts.outfit(
-                color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-              maxLines: 2),
+                style: GoogleFonts.outfit(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold),
+                maxLines: 2),
           ),
           const SizedBox(width: 8),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: statusColor.withOpacity(0.15),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: statusColor.withOpacity(0.3)),
             ),
             child: Text(_statusLabel(status),
-              style: GoogleFonts.outfit(
-                color: statusColor, fontSize: 11, fontWeight: FontWeight.bold)),
+                style: GoogleFonts.outfit(
+                    color: statusColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold)),
           ),
         ]),
         const SizedBox(height: 14),
         const Divider(color: Colors.white12),
         const SizedBox(height: 10),
-        _infoRow(Icons.person_outline_rounded, 'Pelanggan', _order['user_email'] ?? '-'),
+        _infoRow(Icons.person_outline_rounded, 'Pelanggan',
+            _order['user_email'] ?? '-'),
         const SizedBox(height: 6),
         _infoRow(Icons.calendar_today_rounded, 'Jadwal',
-          '${_order['schedule_date'] ?? ''} • ${_order['schedule_time'] ?? ''}'),
+            '${_order['schedule_date'] ?? ''} • ${_order['schedule_time'] ?? ''}'),
       ]),
     );
   }
 
-  // ── Section wrapper ───────────────────────────────────────────
-  Widget _buildSection(String title, IconData icon, List<Widget> children) {
+  // ── Lokasi section dengan maps ────────────────────────────────
+  Widget _buildLocationSection() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -293,16 +403,72 @@ class _EmployeeOrderDetailPageState extends State<EmployeeOrderDetailPage> {
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Icon(icon, color: _accent, size: 18),
+          const Icon(Icons.location_on_rounded, color: _accent, size: 18),
           const SizedBox(width: 8),
-          Text(title,
-            style: GoogleFonts.outfit(
-              color: _accent, fontSize: 14, fontWeight: FontWeight.bold)),
+          Text('Lokasi',
+              style: GoogleFonts.outfit(
+                  color: _accent,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold)),
         ]),
         const SizedBox(height: 12),
         const Divider(color: Colors.white12, height: 1),
         const SizedBox(height: 12),
-        ...children,
+
+        // Maps widget
+        if (_mapLoading)
+          Container(
+            height: 160,
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Center(
+                child: CircularProgressIndicator(
+                    color: _accent, strokeWidth: 2)),
+          )
+        else if (_orderLocation != null)
+          Container(
+            height: 160,
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration:
+                BoxDecoration(borderRadius: BorderRadius.circular(12)),
+            clipBehavior: Clip.hardEdge,
+            child: FlutterMap(
+              options: MapOptions(
+                initialCenter: _orderLocation!,
+                initialZoom: 15.0,
+                interactionOptions: const InteractionOptions(
+                    flags: InteractiveFlag.none),
+              ),
+              children: [
+                TileLayer(
+                  urlTemplate:
+                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.bersihin.app',
+                ),
+                MarkerLayer(markers: [
+                  Marker(
+                    point: _orderLocation!,
+                    width: 40,
+                    height: 40,
+                    child: const Icon(Icons.location_on_rounded,
+                        color: Color(0xFF025955), size: 40),
+                  ),
+                ]),
+              ],
+            ),
+          ),
+
+        // Info rows
+        _infoRow(Icons.home_outlined, 'Alamat', _order['address'] ?? '-'),
+        if ((_order['house_type'] ?? '').toString().isNotEmpty)
+          _infoRow(Icons.house_outlined, 'Tipe Rumah',
+              _order['house_type'] ?? '-'),
+        if ((_order['patokan'] ?? '').toString().isNotEmpty)
+          _infoRow(
+              Icons.flag_outlined, 'Patokan', _order['patokan'] ?? '-'),
       ]),
     );
   }
@@ -314,11 +480,12 @@ class _EmployeeOrderDetailPageState extends State<EmployeeOrderDetailPage> {
         Icon(icon, size: 14, color: Colors.white38),
         const SizedBox(width: 8),
         Text('$label: ',
-          style: GoogleFonts.outfit(color: Colors.white38, fontSize: 12)),
+            style: GoogleFonts.outfit(color: Colors.white38, fontSize: 12)),
         Expanded(
           child: Text(value,
-            style: GoogleFonts.outfit(color: Colors.white70, fontSize: 12),
-            maxLines: 3),
+              style:
+                  GoogleFonts.outfit(color: Colors.white70, fontSize: 12),
+              maxLines: 3),
         ),
       ]),
     );
@@ -333,20 +500,29 @@ class _EmployeeOrderDetailPageState extends State<EmployeeOrderDetailPage> {
       // Tombol Mulai Pengerjaan
       if (status == 'menunggu_konfirmasi') ...[
         SizedBox(
-          width: double.infinity, height: 50,
+          width: double.infinity,
+          height: 50,
           child: ElevatedButton.icon(
-            onPressed: (canStart && !_isUpdating) ? () => _updateStatus('pengerjaan') : null,
+            onPressed: (canStart && !_isUpdating)
+                ? () => _updateStatus('pengerjaan')
+                : null,
             icon: _isUpdating
-              ? const SizedBox(width: 18, height: 18,
-                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-              : const Icon(Icons.play_arrow_rounded, size: 20),
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                        color: Colors.white, strokeWidth: 2))
+                : const Icon(Icons.play_arrow_rounded, size: 20),
             label: Text(
-              canStart ? 'Mulai Pengerjaan' : 'Belum Waktunya',
-              style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14)),
+                canStart ? 'Mulai Pengerjaan' : 'Belum Waktunya',
+                style: GoogleFonts.outfit(
+                    fontWeight: FontWeight.bold, fontSize: 14)),
             style: ElevatedButton.styleFrom(
-              backgroundColor: canStart ? Colors.blue.shade700 : Colors.grey.shade800,
+              backgroundColor:
+                  canStart ? Colors.blue.shade700 : Colors.grey.shade800,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14)),
               elevation: 0,
             ),
           ),
@@ -364,19 +540,26 @@ class _EmployeeOrderDetailPageState extends State<EmployeeOrderDetailPage> {
       // Tombol Selesaikan Order
       if (status == 'pengerjaan') ...[
         SizedBox(
-          width: double.infinity, height: 50,
+          width: double.infinity,
+          height: 50,
           child: ElevatedButton.icon(
-            onPressed: _isUpdating ? null : () => _updateStatus('selesai'),
+            onPressed:
+                _isUpdating ? null : () => _updateStatus('selesai'),
             icon: _isUpdating
-              ? const SizedBox(width: 18, height: 18,
-                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-              : const Icon(Icons.check_circle_rounded, size: 20),
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                        color: Colors.white, strokeWidth: 2))
+                : const Icon(Icons.check_circle_rounded, size: 20),
             label: Text('Selesaikan Order',
-              style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14)),
+                style: GoogleFonts.outfit(
+                    fontWeight: FontWeight.bold, fontSize: 14)),
             style: ElevatedButton.styleFrom(
               backgroundColor: _accentDim,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14)),
               elevation: 0,
             ),
           ),
@@ -397,21 +580,26 @@ class _EmployeeOrderDetailPageState extends State<EmployeeOrderDetailPage> {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
           child: Row(children: [
-            const Icon(Icons.chat_bubble_outline_rounded, color: _accent, size: 18),
+            const Icon(Icons.chat_bubble_outline_rounded,
+                color: _accent, size: 18),
             const SizedBox(width: 8),
             Text('Chat dengan Pelanggan',
-              style: GoogleFonts.outfit(
-                color: _accent, fontSize: 14, fontWeight: FontWeight.bold)),
+                style: GoogleFonts.outfit(
+                    color: _accent,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold)),
             if (_isOrderDone) ...[
               const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: Colors.grey.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text('Read-only',
-                  style: GoogleFonts.outfit(color: Colors.white38, fontSize: 10)),
+                    style: GoogleFonts.outfit(
+                        color: Colors.white38, fontSize: 10)),
               ),
             ],
           ]),
@@ -424,7 +612,8 @@ class _EmployeeOrderDetailPageState extends State<EmployeeOrderDetailPage> {
             padding: const EdgeInsets.all(24),
             child: Center(
               child: Text('Belum ada pesan',
-                style: GoogleFonts.outfit(color: Colors.white38, fontSize: 13)),
+                  style: GoogleFonts.outfit(
+                      color: Colors.white38, fontSize: 13)),
             ),
           )
         else
@@ -440,26 +629,30 @@ class _EmployeeOrderDetailPageState extends State<EmployeeOrderDetailPage> {
   }
 
   Widget _buildChatBubble(dynamic chat) {
-    final isEmployee = (chat['sender_role'] as String? ?? '') == 'employee';
+    final isEmployee =
+        (chat['sender_role'] as String? ?? '') == 'employee';
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
-        mainAxisAlignment: isEmployee ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment:
+            isEmployee ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isEmployee) ...[
             CircleAvatar(
               radius: 14,
               backgroundColor: Colors.white.withOpacity(0.1),
-              child: const Icon(Icons.person_rounded, color: Colors.white54, size: 16),
+              child: const Icon(Icons.person_rounded,
+                  color: Colors.white54, size: 16),
             ),
             const SizedBox(width: 8),
           ],
           Flexible(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.68),
+                  maxWidth: MediaQuery.of(context).size.width * 0.68),
               decoration: BoxDecoration(
                 color: isEmployee ? _accentDim : _surface,
                 borderRadius: BorderRadius.only(
@@ -469,18 +662,21 @@ class _EmployeeOrderDetailPageState extends State<EmployeeOrderDetailPage> {
                   bottomRight: Radius.circular(isEmployee ? 4 : 16),
                 ),
                 border: isEmployee
-                  ? null
-                  : Border.all(color: Colors.white.withOpacity(0.08)),
+                    ? null
+                    : Border.all(color: Colors.white.withOpacity(0.08)),
               ),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              child:
+                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(chat['message'] ?? '',
-                  style: GoogleFonts.outfit(color: Colors.white, fontSize: 13, height: 1.4)),
+                    style: GoogleFonts.outfit(
+                        color: Colors.white, fontSize: 13, height: 1.4)),
                 const SizedBox(height: 4),
                 Text(
                   isEmployee ? _employeeName : 'Pelanggan',
                   style: GoogleFonts.outfit(
-                    color: isEmployee ? Colors.white60 : Colors.white38,
-                    fontSize: 10),
+                      color:
+                          isEmployee ? Colors.white60 : Colors.white38,
+                      fontSize: 10),
                 ),
               ]),
             ),
@@ -510,14 +706,17 @@ class _EmployeeOrderDetailPageState extends State<EmployeeOrderDetailPage> {
               ),
               child: TextField(
                 controller: _chatCtrl,
-                style: GoogleFonts.outfit(fontSize: 14, color: Colors.white),
+                style:
+                    GoogleFonts.outfit(fontSize: 14, color: Colors.white),
                 maxLines: null,
                 textCapitalization: TextCapitalization.sentences,
                 decoration: InputDecoration(
                   hintText: 'Tulis pesan...',
-                  hintStyle: GoogleFonts.outfit(color: Colors.white30, fontSize: 14),
+                  hintStyle: GoogleFonts.outfit(
+                      color: Colors.white30, fontSize: 14),
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 18, vertical: 12),
                 ),
                 onSubmitted: (_) => _sendChat(),
               ),
@@ -528,20 +727,22 @@ class _EmployeeOrderDetailPageState extends State<EmployeeOrderDetailPage> {
             onTap: _isSending ? null : _sendChat,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              width: 44, height: 44,
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: _isSending
-                  ? null
-                  : const LinearGradient(
-                      colors: [_accentDim, _accent],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    ? null
+                    : const LinearGradient(
+                        colors: [_accentDim, _accent],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
                 color: _isSending ? Colors.white12 : null,
               ),
               child: Icon(Icons.send_rounded,
-                color: _isSending ? Colors.white30 : Colors.white, size: 20),
+                  color: _isSending ? Colors.white30 : Colors.white,
+                  size: 20),
             ),
           ),
         ]),

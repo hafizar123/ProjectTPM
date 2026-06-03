@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 class AuthService {
   // Alamat IP server berada di sini.
   // Ganti nilai ini jika ingin menguji menggunakan jaringan WiFi atau perangkat lain.
-  static const String baseUrl = 'http://192.168.18.7:3000/api';
+  static const String baseUrl = 'http://192.168.100.175:3000/api';
 
   // ── PENDAFTARAN AKUN ─────────────────────────────────────────
   Future<Map<String, dynamic>> register(String email, String username, String password) async {
