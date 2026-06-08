@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../services/auth_service.dart';
 import '../views/home/order_reviews_page.dart';
 
-// ── Carousel dua slide: Info App + Apa Kata Orang ────────────
+// Carousel dua slide: Info App dan Apa Kata Orang
 class HomeCarousel extends StatefulWidget {
   const HomeCarousel({super.key});
   @override
@@ -54,7 +54,7 @@ class _HomeCarouselState extends State<HomeCarousel> {
   }
 }
 
-// ── Slide 1: Info Aplikasi ────────────────────────────────────
+// Slide 1: Info Aplikasi
 class _SlideInfoApp extends StatefulWidget {
   const _SlideInfoApp();
   @override
@@ -234,7 +234,7 @@ class _SlideInfoAppState extends State<_SlideInfoApp> {
   }
 }
 
-// ── Slide 2: Apa Kata Orang ───────────────────────────────────
+// Slide 2: Apa Kata Orang
 class _SlideApaKataOrang extends StatefulWidget {
   const _SlideApaKataOrang();
   @override
@@ -263,41 +263,23 @@ class _SlideApaKataOrangState extends State<_SlideApaKataOrang> {
           final data = res['body'];
           List<dynamic> parsed = [];
 
-          // Handle semua kemungkinan format response backend
           if (data is List) {
-            // Format: [ {...}, {...} ]
             parsed = data;
           } else if (data is Map) {
-            // Format: { "data": [...] }
             if (data['data'] is List) {
               parsed = data['data'] as List;
-            }
-            // Format: { "evaluasi": [...] }
-            else if (data['evaluasi'] is List) {
+            } else if (data['evaluasi'] is List) {
               parsed = data['evaluasi'] as List;
-            }
-            // Format: { "result": [...] }
-            else if (data['result'] is List) {
+            } else if (data['result'] is List) {
               parsed = data['result'] as List;
-            }
-            // Format: { "rows": [...] }
-            else if (data['rows'] is List) {
+            } else if (data['rows'] is List) {
               parsed = data['rows'] as List;
             }
           }
 
           _reviews = parsed;
-          // Debug: print ke console untuk diagnosa
-          debugPrint('[Carousel] Status: ${res['statusCode']}');
-          debugPrint('[Carousel] Body type: ${data.runtimeType}');
-          debugPrint('[Carousel] Parsed ${_reviews.length} reviews');
-          if (_reviews.isNotEmpty) {
-            debugPrint('[Carousel] First item keys: ${_reviews[0].keys}');
-          }
         } else {
           _errorMsg = 'Error ${res['statusCode']}';
-          // Tampilkan error di console
-          debugPrint('[Carousel] Error ${res['statusCode']}: ${res['body']}');
         }
       });
     }
@@ -335,9 +317,14 @@ class _SlideApaKataOrangState extends State<_SlideApaKataOrang> {
               child: const Icon(Icons.format_quote_rounded, color: Colors.white, size: 16),
             ),
             const SizedBox(width: 10),
-            Text('Apa Kata Orang Tentang TPM', style: GoogleFonts.outfit(
-                fontWeight: FontWeight.bold, fontSize: 15, color: toscaDark)),
-            const Spacer(),
+            Flexible(
+              child: Text('Apa Kata Orang Tentang TPM',
+                  style: GoogleFonts.outfit(
+                      fontWeight: FontWeight.bold, fontSize: 13, color: toscaDark),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
+            ),
+            const SizedBox(width: 6),
             if (!_loading)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -345,7 +332,7 @@ class _SlideApaKataOrangState extends State<_SlideApaKataOrang> {
                   color: toscaLight.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text('${_reviews.length} ulasan',
+                child: Text('${_reviews.length}',
                     style: GoogleFonts.outfit(fontSize: 11, color: toscaDark, fontWeight: FontWeight.w600)),
               ),
           ]),
@@ -378,7 +365,7 @@ class _SlideApaKataOrangState extends State<_SlideApaKataOrang> {
   }
 }
 
-// ── Kartu satu ulasan ─────────────────────────────────────────
+// Kartu satu ulasan
 class _ReviewCard extends StatelessWidget {
   final dynamic review;
   const _ReviewCard({required this.review});
@@ -392,11 +379,10 @@ class _ReviewCard extends StatelessWidget {
     final email  = (review['email'] ?? '').toString();
     final kesan  = (review['kesan'] ?? '').toString();
     final rating = double.tryParse(review['rating']?.toString() ?? '5') ?? 5.0;
-    // Ambil nama dari email (sebelum @)
     final name   = email.contains('@') ? email.split('@')[0] : email;
 
     return Container(
-      width: 200,
+      width: 190,
       margin: const EdgeInsets.only(right: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -406,30 +392,34 @@ class _ReviewCard extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           // Bintang
-          Row(children: List.generate(5, (i) {
-            final full = (i + 1).toDouble();
-            final half = i + 0.5;
-            return Padding(
-              padding: const EdgeInsets.only(right: 2),
-              child: Stack(children: [
-                Icon(Icons.star_rounded, size: 14, color: Colors.grey.shade200),
-                ClipRect(
-                  clipper: _HalfStarClipper(
-                    fill: rating >= full ? 1.0 : (rating >= half ? 0.5 : 0.0),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: List.generate(5, (i) {
+              final full = (i + 1).toDouble();
+              final half = i + 0.5;
+              return Padding(
+                padding: const EdgeInsets.only(right: 2),
+                child: Stack(children: [
+                  Icon(Icons.star_rounded, size: 13, color: Colors.grey.shade200),
+                  ClipRect(
+                    clipper: _HalfStarClipper(
+                      fill: rating >= full ? 1.0 : (rating >= half ? 0.5 : 0.0),
+                    ),
+                    child: Icon(Icons.star_rounded, size: 13, color: Colors.amber.shade500),
                   ),
-                  child: Icon(Icons.star_rounded, size: 14, color: Colors.amber.shade500),
-                ),
-              ]),
-            );
-          })),
+                ]),
+              );
+            }),
+          ),
           const SizedBox(height: 6),
-          // Teks ulasan
-          Expanded(
+          // Teks ulasan - pakai Flexible bukan Expanded agar tidak overflow
+          Flexible(
             child: Text(
               kesan.isEmpty ? '—' : kesan,
-              style: GoogleFonts.outfit(fontSize: 12, color: Colors.black87, height: 1.4),
+              style: GoogleFonts.outfit(fontSize: 11, color: Colors.black87, height: 1.4),
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
             ),
@@ -438,15 +428,22 @@ class _ReviewCard extends StatelessWidget {
           // Nama pengguna
           Row(children: [
             CircleAvatar(
-              radius: 10,
+              radius: 9,
               backgroundColor: toscaMedium.withOpacity(0.15),
-              child: Text(name.isNotEmpty ? name[0].toUpperCase() : '?',
-                  style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.bold, color: toscaDark)),
+              child: Text(
+                name.isNotEmpty ? name[0].toUpperCase() : '?',
+                style: GoogleFonts.outfit(fontSize: 9, fontWeight: FontWeight.bold, color: toscaDark),
+              ),
             ),
-            const SizedBox(width: 6),
-            Expanded(child: Text(name,
-                style: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.w600, color: toscaDark),
-                maxLines: 1, overflow: TextOverflow.ellipsis)),
+            const SizedBox(width: 5),
+            Expanded(
+              child: Text(
+                name,
+                style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.w600, color: toscaDark),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ]),
         ],
       ),

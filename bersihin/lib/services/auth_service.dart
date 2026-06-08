@@ -2,11 +2,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class AuthService {
-  // Alamat IP server berada di sini.
-  // Ganti nilai ini jika ingin menguji menggunakan jaringan WiFi atau perangkat lain.
-  static const String baseUrl = 'http://192.168.100.175:3000/api';
+  // Ganti IP ini sesuai jaringan yang dipakai
+  static const String baseUrl = 'http://192.168.18.7:3000/api';
 
-  // ── PENDAFTARAN AKUN ─────────────────────────────────────────
+  // PENDAFTARAN 
   Future<Map<String, dynamic>> register(String email, String username, String password) async {
     try {
       final response = await http.post(
@@ -31,7 +30,7 @@ class AuthService {
     }
   }
 
-  // Login biometrik — tanpa password, cukup email
+  // Login biometrik
   Future<Map<String, dynamic>> biometricLogin(String email) async {
     try {
       final response = await http.post(
@@ -51,7 +50,7 @@ class AuthService {
     }
   }
 
-  // ── MASUK AKUN ───────────────────────────────────────────────
+  // LOGIN 
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
       final response = await http.post(
@@ -75,7 +74,7 @@ class AuthService {
     }
   }
 
-  // ── PROFIL PENGGUNA ───────────────────────────────────────────
+  // PROFIL 
   Future<Map<String, dynamic>> getProfile(String email) async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/profile/$email'));
@@ -93,8 +92,6 @@ class AuthService {
 
   Future<Map<String, dynamic>> updateProfile(String oldEmail, String email, String username, String password, {String? avatarUrl}) async {
     try {
-      // Bangun body — hanya sertakan avatar_url jika ada nilainya
-      // Jika null, JANGAN kirim field ini agar server tidak menghapus foto yang sudah ada
       final Map<String, dynamic> body = {
         'oldEmail': oldEmail,
         'email': email,
@@ -116,17 +113,14 @@ class AuthService {
     }
   }
 
-  // ── HAPUS AKUN ───────────────────────────────────────────────
+  // HAPUS AKUN 
   Future<Map<String, dynamic>> deleteAccount(String email) async {
     final response = await http.delete(Uri.parse('$baseUrl/delete-account/$email'));
     return {'statusCode': response.statusCode, 'body': jsonDecode(response.body)};
   }
 
-  // ==========================================
-  // FITUR ALAMAT TERSIMPAN
-  // ==========================================
+  // ALAMAT TERSIMPAN 
 
-  // ── MENGAMBIL DAFTAR ALAMAT ───────────────────────────────────
   Future<Map<String, dynamic>> getSavedAddresses(String username) async {
     try {
       final response = await http.get(
@@ -145,7 +139,7 @@ class AuthService {
     }
   }
 
-  // ── MENYIMPAN ALAMAT BARU ─────────────────────────────────────
+  // Simpan alamat baru
   Future<Map<String, dynamic>> saveNewAddress(String username, String address, String lat, String lng, String houseType, String description) async {
     try {
       final response = await http.post(
@@ -166,7 +160,7 @@ class AuthService {
     }
   }
 
-  // ── MENGHAPUS ALAMAT ──────────────────────────────────────────
+  // Hapus alamat
   Future<Map<String, dynamic>> deleteAddress(String id) async {
     try {
       final response = await http.delete(Uri.parse('$baseUrl/delete_address/$id'));
@@ -176,7 +170,7 @@ class AuthService {
     }
   }
 
-  // ── MENGUBAH ALAMAT ───────────────────────────────────────────
+  // Edit alamat
   Future<Map<String, dynamic>> editAddress(String id, String address, String houseType, String description) async {
     try {
       final response = await http.put(
@@ -194,9 +188,7 @@ class AuthService {
     }
   }
 
-  // ==========================================
-  // FITUR PESANAN (ORDERS)
-  // ==========================================
+  // PESANAN 
 
   Future<Map<String, dynamic>> createOrder(Map<String, dynamic> orderData) async {
     try {
@@ -236,7 +228,7 @@ class AuthService {
     }
   }
 
-  // ── MEMBATALKAN PESANAN ───────────────────────────────────────
+  // Batalkan pesanan
   Future<Map<String, dynamic>> cancelOrder(String identifier) async {
     try {
       final response = await http.delete(
@@ -251,8 +243,7 @@ class AuthService {
     }
   }
 
-  
-  // ── MENGIRIM EVALUASI ─────────────────────────────────────────
+  // Kirim evaluasi
   Future<Map<String, dynamic>> submitEvaluasi(String email, double rating, String kesan, String saran) async {
     try {
       final response = await http.post(
@@ -271,9 +262,8 @@ class AuthService {
     }
   }
 
-// ==========================================
-  // bagian API ADMIN
-  // ==========================================
+  // ADMIN
+
   Future<Map<String, dynamic>> loginAdmin(String username, String password) async {
     try {
       final response = await http.post(
@@ -305,7 +295,7 @@ class AuthService {
     }
   }
 
-  // Ambil semua evaluasi untuk ditampilkan di carousel "Apa Kata Orang"
+  // Ambil semua evaluasi untuk carousel "Apa Kata Orang"
   Future<Map<String, dynamic>> getAllEvaluasi() async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/evaluasi'));
@@ -315,7 +305,7 @@ class AuthService {
     }
   }
 
-  // ── LIVE CHAT ────────────────────────────────────────────────
+  // LIVE CHAT 
 
   Future<Map<String, dynamic>> getMessages(String email) async {
     try {
@@ -348,7 +338,7 @@ class AuthService {
     }
   }
 
-  // ── REVIEW TRANSAKSI ─────────────────────────────────────────
+  // REVIEW PESANAN 
 
   Future<Map<String, dynamic>> submitOrderReview(
       int orderId, String userEmail, double rating, String review) async {
@@ -387,7 +377,7 @@ class AuthService {
     }
   }
 
-  // ── LAPORAN / ADUAN ──────────────────────────────────────────
+  // LAPORAN 
 
   Future<Map<String, dynamic>> submitReport({
     required int orderId,
@@ -434,11 +424,8 @@ class AuthService {
     }
   }
 
-  // ==========================================
-  // FITUR KARYAWAN (EMPLOYEE)
-  // ==========================================
+  // KARYAWAN 
 
-  /// Ambil profil karyawan by id
   Future<Map<String, dynamic>> getEmployeeProfile(int employeeId) async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/employee/profile/$employeeId'));
@@ -448,7 +435,7 @@ class AuthService {
     }
   }
 
-  /// Ambil semua order yang di-assign ke karyawan
+  // Ambil order yang di-assign ke karyawan
   Future<Map<String, dynamic>> getEmployeeOrders(int employeeId) async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/employee/orders/$employeeId'));
@@ -458,7 +445,7 @@ class AuthService {
     }
   }
 
-  /// Karyawan update status order
+  // Update status order oleh karyawan
   Future<Map<String, dynamic>> updateOrderStatusByEmployee(
       int orderId, String status, int employeeId) async {
     try {
@@ -473,7 +460,7 @@ class AuthService {
     }
   }
 
-  /// Ambil semua pesan chat per order
+  // Ambil pesan chat per order
   Future<Map<String, dynamic>> getEmployeeChat(int orderId) async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/employee-chat/$orderId'));
@@ -483,7 +470,7 @@ class AuthService {
     }
   }
 
-  /// Kirim pesan chat karyawan-user
+  // Kirim pesan chat karyawan-user
   Future<Map<String, dynamic>> sendEmployeeChat(
       int orderId, String senderRole, String senderId, String message) async {
     try {

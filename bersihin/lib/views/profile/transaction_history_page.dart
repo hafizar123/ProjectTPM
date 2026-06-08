@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/auth_service.dart';
@@ -88,7 +88,16 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          // ── HEADER ──────────────────────────────────────
+
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
           SliverAppBar(
             expandedHeight: 160,
             pinned: true,
@@ -150,7 +159,15 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
             ),
           ),
 
-          // ── FILTER CHIPS ─────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
           SliverToBoxAdapter(
             child: Container(
               color: Colors.white,
@@ -171,7 +188,15 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
             ),
           ),
 
-          // ── LIST ─────────────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
           SliverToBoxAdapter(
             child: _isLoading
                 ? Padding(
@@ -360,7 +385,7 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
     );
   }
 
-  // ── Chat preview (read-only) ──────────────────────────────────
+  // Chat preview (read-only)
   Widget _buildChatPreview(int orderId) {
     return FutureBuilder<Map<String, dynamic>>(
       future: _svc.getEmployeeChat(orderId),

@@ -21,7 +21,7 @@ class SmartRecommendationWidget extends StatefulWidget {
 
 class _SmartRecommendationWidgetState extends State<SmartRecommendationWidget>
     with TickerProviderStateMixin {
-  // ── Warna tema ──────────────────────────────────────────────
+  // Warna tema
   static const Color _toscaDark   = Color(0xFF025955);
   static const Color _toscaMedium = Color(0xFF00909E);
   static const Color _toscaLight  = Color(0xFF48C9B0);
@@ -100,7 +100,7 @@ class _SmartRecommendationWidgetState extends State<SmartRecommendationWidget>
     }
   }
 
-  // ── Map nama layanan ke ServiceDetailPage — SAMA PERSIS dengan home_page.dart
+  // Map nama layanan ke ServiceDetailPage — SAMA PERSIS dengan home_page.dart
   static const Map<String, Map<String, dynamic>> _serviceDetailMap = {
     'Pemanas Air': {
       'title': 'Layanan Pemanas Air',
@@ -230,7 +230,7 @@ class _SmartRecommendationWidgetState extends State<SmartRecommendationWidget>
     );
   }
 
-  // ── Section header dengan badge AI ──────────────────────────
+  // Section header dengan badge AI
   Widget _buildSectionHeader() {
     return Row(
       children: [
@@ -297,7 +297,7 @@ class _SmartRecommendationWidgetState extends State<SmartRecommendationWidget>
     );
   }
 
-  // ── Loading state dengan shimmer + scan line ─────────────────
+  // Loading state dengan shimmer + scan line
   Widget _buildLoadingState() {
     return Column(
       children: [
@@ -393,7 +393,7 @@ class _SmartRecommendationWidgetState extends State<SmartRecommendationWidget>
     );
   }
 
-  // ── Error state ──────────────────────────────────────────────
+  // Error state
   Widget _buildErrorState() {
     return GestureDetector(
       onTap: _loadRecommendations,
@@ -417,7 +417,7 @@ class _SmartRecommendationWidgetState extends State<SmartRecommendationWidget>
     );
   }
 
-  // ── Kartu rekomendasi ────────────────────────────────────────
+  // Kartu rekomendasi
   Widget _buildRecommendationCards() {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -438,7 +438,7 @@ class _SmartRecommendationWidgetState extends State<SmartRecommendationWidget>
   }
 }
 
-// ── Kartu individual ─────────────────────────────────────────
+// Kartu individual
 class _RecommendationCard extends StatefulWidget {
   final ServiceRecommendation recommendation;
   final int index;

@@ -59,6 +59,7 @@ class _WaitingPaymentPageState extends State<WaitingPaymentPage> {
   // >0 = sisa detik
   int _start = -1;
   bool _isLoading = false;
+  bool _autoCancelCalled = false; // flag agar auto-cancel tidak dipanggil berkali-kali
   late String _currentStatus;
 
   // Review state
@@ -675,8 +676,30 @@ class _WaitingPaymentPageState extends State<WaitingPaymentPage> {
           ],
 
           const Padding(padding: EdgeInsets.symmetric(vertical: 15), child: Divider()),
-          Text('Status pesanan akan diperbarui secara otomatis setelah diverifikasi oleh Admin Bersih.In.',
-              style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey.shade500, fontStyle: FontStyle.italic)),
+          if (_currentStatus == 'cancelled')
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.red.shade200),
+              ),
+              child: Row(children: [
+                Icon(Icons.cancel_rounded, color: Colors.red.shade600, size: 18),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Pesanan ini telah dibatalkan. Waktu pembayaran habis atau pesanan tidak dikonfirmasi tepat waktu.',
+                    style: GoogleFonts.outfit(fontSize: 12, color: Colors.red.shade700, height: 1.4),
+                  ),
+                ),
+              ]),
+            )
+          else
+            Text(
+              'Status pesanan akan diperbarui secara otomatis setelah diverifikasi oleh Admin Bersih.In.',
+              style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey.shade500, fontStyle: FontStyle.italic),
+            ),
         ],
       ),
     );
@@ -822,14 +845,40 @@ class _WaitingPaymentPageState extends State<WaitingPaymentPage> {
   }
 
   Widget _buildStatusBadge() {
-    String label = _currentStatus.replaceAll('_', ' ').toUpperCase();
-    Color color = toscaMedium;
-    if (_currentStatus == 'menunggu_konfirmasi') color = Colors.orange;
-    if (_currentStatus == 'pengerjaan') color = Colors.blue;
-    if (_currentStatus == 'selesai') color = toscaDark;
+    String label;
+    Color color;
+    switch (_currentStatus) {
+      case 'menunggu_pembayaran':
+        label = 'Menunggu Pembayaran';
+        color = Colors.red.shade500;
+        break;
+      case 'menunggu_konfirmasi':
+        label = 'Menunggu Konfirmasi';
+        color = Colors.orange;
+        break;
+      case 'pengerjaan':
+        label = 'Sedang Dikerjakan';
+        color = Colors.blue;
+        break;
+      case 'selesai':
+        label = 'Selesai';
+        color = toscaDark;
+        break;
+      case 'cancelled':
+        label = 'Dibatalkan';
+        color = Colors.grey.shade600;
+        break;
+      default:
+        label = _currentStatus.replaceAll('_', ' ').toUpperCase();
+        color = toscaMedium;
+    }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10), border: Border.all(color: color.withOpacity(0.3))),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
       child: Text(label, style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.bold, color: color)),
     );
   }
@@ -931,17 +980,67 @@ class _WaitingPaymentPageState extends State<WaitingPaymentPage> {
   }
 
   Widget _buildActionButtons() {
+    // Waktu habis — tombol bayar diganti keterangan, status auto-cancel
+    if (_start == 0) {
+      _autoCancelIfNeeded();
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+        decoration: BoxDecoration(
+          color: Colors.red.shade50,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.red.shade200),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.timer_off_rounded, color: Colors.red.shade600, size: 22),
+            const SizedBox(width: 10),
+            Text(
+              'Waktu pembayaran habis',
+              style: GoogleFonts.outfit(
+                fontWeight: FontWeight.bold,
+                color: Colors.red.shade700,
+                fontSize: 15,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return SizedBox(
       width: double.infinity,
       height: 60,
       child: ElevatedButton(
         onPressed: _isLoading ? null : _handleConfirmPayment,
-        style: ElevatedButton.styleFrom(backgroundColor: toscaDark, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)), elevation: 8, shadowColor: toscaDark.withOpacity(0.4)),
-        child: _isLoading 
-          ? const SizedBox(width: 25, height: 25, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
-          : Text('SAYA SUDAH BAYAR', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 1.2)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: toscaDark,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          elevation: 8,
+          shadowColor: toscaDark.withOpacity(0.4),
+        ),
+        child: _isLoading
+            ? const SizedBox(width: 25, height: 25, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
+            : Text('SAYA SUDAH BAYAR',
+                style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 1.2)),
       ),
     );
+  }
+
+  /// Auto-cancel order di backend saat waktu pembayaran habis.
+  /// Dipanggil dari _buildActionButtons() saat _start == 0.
+  void _autoCancelIfNeeded() {
+    if (_autoCancelCalled || _currentStatus != 'menunggu_pembayaran') return;
+    _autoCancelCalled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final response = await _authService.updateOrderStatus(widget.orderId, 'cancelled');
+      if (response['statusCode'] == 200 && mounted) {
+        setState(() => _currentStatus = 'cancelled');
+        await NotificationService().showPaymentExpired(widget.serviceName);
+      }
+    });
   }
 
   Future<void> _showCancelDialog() async {

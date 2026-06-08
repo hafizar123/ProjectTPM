@@ -1,12 +1,12 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
-// ── Model kotoran yang harus dibersihkan ─────────────────────
+// Model kotoran yang harus dibersihkan
 class DirtSpot {
-  double x;   // posisi relatif 0.0–1.0
+  double x;   
   double y;
   double size;
   bool cleaned;
@@ -16,7 +16,7 @@ class DirtSpot {
       : cleaned = false;
 }
 
-// ── Halaman Mini Game ────────────────────────────────────────
+// Halaman Mini Game
 class MiniGamePage extends StatefulWidget {
   const MiniGamePage({super.key});
   @override
@@ -28,12 +28,12 @@ class _MiniGamePageState extends State<MiniGamePage> with TickerProviderStateMix
   final Color toscaMedium = const Color(0xFF00909E);
   final Color toscaLight  = const Color(0xFF48C9B0);
 
-  // ── State gyroscope & posisi sapu ───────────────────────────
+  // State gyroscope & posisi sapu
   double _broomX = 0.5;  // posisi sapu 0.0–1.0
   double _broomY = 0.5;
   StreamSubscription<GyroscopeEvent>? _gyroSub;
 
-  // ── State game ───────────────────────────────────────────────
+  // State game
   List<DirtSpot> _dirts = [];
   int _score = 0;
   int _timeLeft = 30;
@@ -43,7 +43,7 @@ class _MiniGamePageState extends State<MiniGamePage> with TickerProviderStateMix
   int _level = 1;
   int _totalDirts = 0;
 
-  // ── Animasi ──────────────────────────────────────────────────
+  // Animasi
   late AnimationController _broomAnim;
   late AnimationController _pulseAnim;
 
@@ -160,7 +160,7 @@ class _MiniGamePageState extends State<MiniGamePage> with TickerProviderStateMix
     return Scaffold(
       backgroundColor: const Color(0xFF0A1628),
       body: Stack(children: [
-        // ── Background dekoratif ─────────────────────────────
+        // Background dekoratif
         Positioned.fill(child: CustomPaint(painter: _BgPainter(toscaDark))),
 
         SafeArea(child: Column(children: [
@@ -168,13 +168,13 @@ class _MiniGamePageState extends State<MiniGamePage> with TickerProviderStateMix
           Expanded(child: _gameStarted ? _buildGameArea() : _buildStartScreen()),
         ])),
 
-        // ── Game Over / Level Clear overlay ──────────────────
+        // Game Over / Level Clear overlay
         if (_gameOver) _buildResultOverlay(),
       ]),
     );
   }
 
-  // ── HEADER ──────────────────────────────────────────────────
+  // HEADER
   Widget _buildHeader() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -240,7 +240,7 @@ class _MiniGamePageState extends State<MiniGamePage> with TickerProviderStateMix
     );
   }
 
-  // ── START SCREEN ─────────────────────────────────────────────
+  // START SCREEN
   Widget _buildStartScreen() {
     return Center(
       child: Padding(
@@ -323,7 +323,7 @@ class _MiniGamePageState extends State<MiniGamePage> with TickerProviderStateMix
     Text(text, style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13)),
   ]);
 
-  // ── GAME AREA ────────────────────────────────────────────────
+  // GAME AREA
   Widget _buildGameArea() {
     return Column(children: [
       // Progress bar
@@ -448,7 +448,7 @@ class _MiniGamePageState extends State<MiniGamePage> with TickerProviderStateMix
     );
   }
 
-  // ── RESULT OVERLAY ───────────────────────────────────────────
+  // RESULT OVERLAY
   Widget _buildResultOverlay() {
     final isWin = _allCleaned;
     return Container(
@@ -560,7 +560,7 @@ class _MiniGamePageState extends State<MiniGamePage> with TickerProviderStateMix
   }
 }
 
-// ── Custom Painters ──────────────────────────────────────────
+// Custom Painters
 class _BgPainter extends CustomPainter {
   final Color color;
   _BgPainter(this.color);

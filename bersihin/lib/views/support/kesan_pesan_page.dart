@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/auth_service.dart';
@@ -61,7 +61,15 @@ class _EvaluasiPageState extends State<EvaluasiPage> {
     ));
   }
 
-  // ── label & warna dinamis ─────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
   String get _ratingLabel {
     if (_rating <= 1.0) return 'Sangat Buruk';
     if (_rating <= 1.5) return 'Buruk';
@@ -81,7 +89,15 @@ class _EvaluasiPageState extends State<EvaluasiPage> {
     return toscaMedium;
   }
 
-  // ── bintang interaktif ────────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
   Widget _buildStars({double size = 44}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -114,7 +130,7 @@ class _EvaluasiPageState extends State<EvaluasiPage> {
     );
   }
 
-  // ── mini bintang (read-only) ──────────────────────────────
+  // mini bintang (read-only)
   Widget _miniStars(double val, {double size = 28}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -135,7 +151,15 @@ class _EvaluasiPageState extends State<EvaluasiPage> {
     );
   }
 
-  // ── scaffold ──────────────────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -162,7 +186,15 @@ class _EvaluasiPageState extends State<EvaluasiPage> {
     );
   }
 
-  // ── GUEST ─────────────────────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
   Widget _buildGuest() {
     return Center(
       child: Padding(
@@ -204,7 +236,15 @@ class _EvaluasiPageState extends State<EvaluasiPage> {
     );
   }
 
-  // ── SUCCESS ───────────────────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
   Widget _buildSuccess() {
     return Center(
       child: Padding(
@@ -255,14 +295,30 @@ class _EvaluasiPageState extends State<EvaluasiPage> {
     );
   }
 
-  // ── FORM ──────────────────────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
   Widget _buildForm() {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 120),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
-        // ── info card ──────────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
         Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
@@ -295,7 +351,15 @@ class _EvaluasiPageState extends State<EvaluasiPage> {
 
         const SizedBox(height: 20),
 
-        // ── rating bintang ─────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
@@ -339,7 +403,15 @@ class _EvaluasiPageState extends State<EvaluasiPage> {
 
         const SizedBox(height: 16),
 
-        // ── kesan ──────────────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
         _inputCard(
           icon: Icons.sentiment_satisfied_alt_rounded,
           title: 'Kesan Selama Kuliah',
@@ -349,7 +421,15 @@ class _EvaluasiPageState extends State<EvaluasiPage> {
 
         const SizedBox(height: 14),
 
-        // ── saran ──────────────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
         _inputCard(
           icon: Icons.lightbulb_outline_rounded,
           title: 'Saran Membangun',
@@ -359,7 +439,15 @@ class _EvaluasiPageState extends State<EvaluasiPage> {
 
         const SizedBox(height: 28),
 
-        // ── tombol kirim ───────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
         GestureDetector(
           onTap: _isLoading ? null : _submit,
           child: AnimatedContainer(
@@ -422,7 +510,15 @@ class _EvaluasiPageState extends State<EvaluasiPage> {
   }
 }
 
-// ── clipper setengah bintang ──────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
 class _StarClipper extends CustomClipper<Rect> {
   final double fill; // 0.0, 0.5, atau 1.0
   const _StarClipper({required this.fill});

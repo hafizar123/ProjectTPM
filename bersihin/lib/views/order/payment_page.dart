@@ -41,20 +41,20 @@ class _PaymentPageState extends State<PaymentPage> {
   bool _isLoading = false;
   bool _intlExpanded = false;    // accordion bank internasional
 
-  // ── data bank internasional ──────────────────────────────────
+  // data bank internasional
   static const _intlBanks = [
     {'currency': 'CNY', 'flag': '🇨🇳'},
     {'currency': 'SGD', 'flag': '🇸🇬'},
     {'currency': 'SAR', 'flag': '🇸🇦'},
   ];
 
-  // ── hitung harga dalam mata uang aktif ───────────────────────
+  // hitung harga dalam mata uang aktif
   String _fmt(int idr) => CurrencyService.formatFromIdr(idr, _selectedCurrency);
 
   int get _ppn  => (widget.price * 0.11).round();
   int get _total => widget.price + _ppn;
 
-  // ── proses ke waiting page ───────────────────────────────────
+  // proses ke waiting page
   void _processToWaiting() async {
     if (_selectedMethod.isEmpty) {
       _notif('Silakan pilih metode pembayaran terlebih dahulu');
@@ -111,7 +111,7 @@ class _PaymentPageState extends State<PaymentPage> {
       await prefs.setString('order_currency_$realOrderId', _selectedCurrency);
       await prefs.setDouble('order_converted_$realOrderId', totalConverted);
 
-      // ── Jadwalkan notifikasi ──────────────────────────────────
+      // Jadwalkan notifikasi
       final notif = NotificationService();
 
       // 1. Pengingat 10 menit sebelum pembayaran expired
@@ -160,7 +160,7 @@ class _PaymentPageState extends State<PaymentPage> {
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
   ));
 
-  // ── BUILD ────────────────────────────────────────────────────
+  // BUILD
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -182,20 +182,20 @@ class _PaymentPageState extends State<PaymentPage> {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const SizedBox(height: 10),
 
-          // ── lokasi ──────────────────────────────────────
+          // lokasi
           _sectionTitle('Lokasi Pengerjaan'),
           _infoCard(icon: Icons.location_on_rounded, title: widget.houseType,
               subtitle: widget.address,
               footer: widget.patokan != '-' ? 'Patokan: ${widget.patokan}' : null),
           const SizedBox(height: 22),
 
-          // ── layanan ─────────────────────────────────────
+          // layanan
           _sectionTitle('Detail Layanan'),
           _infoCard(icon: Icons.cleaning_services_rounded, title: widget.serviceName,
               subtitle: '${widget.date} | ${widget.time}'),
           const SizedBox(height: 22),
 
-          // ── metode pembayaran ────────────────────────────
+          // metode pembayaran
           _sectionTitle('Pilih Metode Pembayaran'),
 
           // QRIS
@@ -220,14 +220,14 @@ class _PaymentPageState extends State<PaymentPage> {
           _buildIntlBankSection(),
           const SizedBox(height: 22),
 
-          // ── ringkasan biaya ──────────────────────────────
+          // ringkasan biaya
           _sectionTitle('Ringkasan Biaya'),
           _buildPriceSummary(),
           const SizedBox(height: 120),
         ]),
       ),
 
-      // ── bottom bar ───────────────────────────────────────
+      // bottom bar
       bottomSheet: Container(
         padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 20),
         decoration: BoxDecoration(
@@ -262,7 +262,7 @@ class _PaymentPageState extends State<PaymentPage> {
     );
   }
 
-  // ── BANK INTERNASIONAL ACCORDION ────────────────────────────
+  // BANK INTERNASIONAL ACCORDION
   Widget _buildIntlBankSection() {
     return Container(
       decoration: BoxDecoration(
@@ -382,7 +382,7 @@ class _PaymentPageState extends State<PaymentPage> {
     );
   }
 
-  // ── RINGKASAN BIAYA ──────────────────────────────────────────
+  // RINGKASAN BIAYA
   Widget _buildPriceSummary() {
     final isIntl = _selectedCurrency != 'IDR';
     final sym    = CurrencyService.symbol[_selectedCurrency]!;
@@ -461,7 +461,7 @@ class _PaymentPageState extends State<PaymentPage> {
     );
   }
 
-  // ── HELPER WIDGETS ───────────────────────────────────────────
+  // HELPER WIDGETS
   Widget _sectionTitle(String t) => Padding(
     padding: const EdgeInsets.only(bottom: 12, left: 4),
     child: Text(t, style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),

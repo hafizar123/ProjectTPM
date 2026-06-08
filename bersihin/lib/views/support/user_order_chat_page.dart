@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -213,7 +213,16 @@ class _UserOrderChatPageState extends State<UserOrderChatPage> {
         ),
       ),
       body: Column(children: [
-        // ── Pesan ────────────────────────────────────────────────
+
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
         Expanded(
           child: _isLoading
               ? const Center(child: CircularProgressIndicator(color: _accent))
@@ -228,7 +237,7 @@ class _UserOrderChatPageState extends State<UserOrderChatPage> {
                     ),
         ),
 
-        // ── Read-only banner ─────────────────────────────────────
+        // Read-only banner
         if (_isReadOnly)
           Container(
             padding: const EdgeInsets.symmetric(vertical: 10),
@@ -247,7 +256,15 @@ class _UserOrderChatPageState extends State<UserOrderChatPage> {
             ),
           ),
 
-        // ── Input chat ───────────────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
         if (!_isReadOnly)
           Container(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),

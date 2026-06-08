@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -46,7 +46,7 @@ class _HomePageState extends State<HomePage> {
   final Color toscaMedium = const Color(0xFF00909E);
   final Color toscaLight = const Color(0xFF48C9B0);
 
-  // -- Shake detection ------------------------------------------
+  // -- Shake detection
   StreamSubscription<AccelerometerEvent>? _accelSub;
   double _prevAccelMag = 0;
   bool _shakeOverlayShown = false;
@@ -206,7 +206,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // ── Deteksi guncangan: guncang perangkat di beranda untuk masuk mini game ──
+  // Deteksi guncangan: guncang perangkat di beranda untuk masuk mini game
   void _startShakeDetection() {
     _accelSub?.cancel();
     _accelSub = accelerometerEventStream().listen((event) {
@@ -274,9 +274,7 @@ class _HomePageState extends State<HomePage> {
     return 'Halo, Selamat Malam';
   }
 
-  // =================================================================
   // WIDGET JAM KONVERSI - ELEGAN & modern
-  // =================================================================
   Widget _buildRealTimeClock() {
     final utcTime = _currentTime.toUtc();
     final offset  = _timeZones[_selectedZone] ?? 7;
@@ -534,7 +532,7 @@ class _HomePageState extends State<HomePage> {
                     const HomeCarousel(),
                     const SizedBox(height: 22),
 
-                    // ── Smart AI Recommendation ──────────────
+                    // Smart AI Recommendation
                     SmartRecommendationWidget(
                       email: _savedEmail,
                       isGuest: _isGuest,
@@ -580,7 +578,7 @@ class _HomePageState extends State<HomePage> {
                         ]),
                       ),
                     const SizedBox(height: 12),
-                    // -- Hint shake mini game -------------------------
+                    // -- Hint shake mini game
                     Container(
                       width: double.infinity,
                       margin: const EdgeInsets.only(bottom: 20),
@@ -625,7 +623,7 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ]),
                     ),
-                    // -- Section header Layanan Kami ------------------
+                    // -- Section header Layanan Kami
                     Row(children: [
                       Container(
                         width: 4, height: 20,
@@ -825,7 +823,7 @@ const SizedBox(height: 100),
   }
 }
 
-// -- Overlay animasi saat shake terdeteksi --------------------
+// -- Overlay animasi saat shake terdeteksi
 class _ShakeOverlay extends StatefulWidget {
   final Color toscaDark;
   final Color toscaMedium;

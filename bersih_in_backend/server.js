@@ -7,12 +7,10 @@ const jwt = require('jsonwebtoken');
 
 const app = express();
 
-// Middleware untuk mengizinkan CORS dan menerima JSON
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Koneksi ke Database MySQL
 const db = mysql.createConnection({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
@@ -28,11 +26,8 @@ db.connect((err) => {
     console.log('Berhasil terhubung ke MySQL Bersih.In');
 });
 
-// ==========================================
-// RUTE AKUN (LOGIN, REGISTER, DLL)
-// ==========================================
+// AKUN 
 
-// Rute pendaftaran akun baru
 app.post('/api/register', async (req, res) => {
     const { email, username, password } = req.body;
 
@@ -58,7 +53,7 @@ app.post('/api/register', async (req, res) => {
     }
 });
 
-// Rute login akun
+// Login: cek profiles dulu, kalau tidak ketemu cek employees
 app.post('/api/login', (req, res) => {
     const { email, password } = req.body;
 
@@ -66,8 +61,8 @@ app.post('/api/login', (req, res) => {
         return res.status(400).json({ message: 'Email/username dan kata sandi wajib diisi' });
     }
 
-    // Support login dengan email ATAU username — cek profiles dulu
-    const query = 'SELECT * FROM profiles WHERE email = ? OR username = ?';
+        // Support login dengan email ATAU username
+        const query = 'SELECT * FROM profiles WHERE email = ? OR username = ?';
     db.query(query, [email, email], async (err, results) => {
         if (err) {
             console.error('Database error:', err);
@@ -93,7 +88,7 @@ app.post('/api/login', (req, res) => {
             });
         }
 
-        // Tidak ketemu di profiles — cek tabel employees
+        // Tidak ketemu di profiles, cek employees
         const empQuery = 'SELECT * FROM employees WHERE (email = ? OR username = ?) AND is_active = 1';
         db.query(empQuery, [email, email], async (err2, empResults) => {
             if (err2) {
@@ -133,7 +128,7 @@ app.post('/api/login', (req, res) => {
     });
 });
 
-// Rute login biometrik — tanpa password, identitas sudah diverifikasi sidik jari
+// Login biometrik
 app.post('/api/biometric-login', (req, res) => {
     const { email } = req.body;
 
@@ -167,7 +162,7 @@ app.post('/api/biometric-login', (req, res) => {
     });
 });
 
-// Rute mengambil data profil
+// Ambil profil
 app.get('/api/profile/:email', (req, res) => {
     const email = req.params.email;
     const query = 'SELECT username, email, avatar_url FROM profiles WHERE email = ?';
@@ -186,7 +181,7 @@ app.get('/api/profile/:email', (req, res) => {
     });
 });
 
-// Rute memperbarui data akun
+// Update profil
 app.put('/api/update-profile', async (req, res) => {
     const { oldEmail, email, username, password, avatar_url } = req.body;
 
@@ -194,7 +189,7 @@ app.put('/api/update-profile', async (req, res) => {
         let query = 'UPDATE profiles SET email = ?, username = ?';
         let params = [email, username];
 
-        // Perbarui kata sandi jika diisi
+        // Perbarui password jika diisi
         if (password && password.trim() !== "") {
             const salt = await bcrypt.genSalt(10);
             const hashedPassword = await bcrypt.hash(password, salt);
@@ -203,8 +198,7 @@ app.put('/api/update-profile', async (req, res) => {
         }
 
         // Perbarui foto profil jika ada
-        if (avatar_url && avatar_url.trim() !== "") {
-            query += ', avatar_url = ?';
+        if (avatar_url && avatar_url.trim() !== "") {            query += ', avatar_url = ?';
             params.push(avatar_url);
         }
 
@@ -220,7 +214,7 @@ app.put('/api/update-profile', async (req, res) => {
     }
 });
 
-// Rute menghapus akun
+// Hapus akun
 app.delete('/api/delete-account/:email', (req, res) => {
     const email = req.params.email;
     const query = 'DELETE FROM profiles WHERE email = ?';
@@ -230,7 +224,7 @@ app.delete('/api/delete-account/:email', (req, res) => {
     });
 });
 
-// Rute membatalkan pesanan
+// Batalkan pesanan (hanya status menunggu_pembayaran)
 app.delete('/api/cancel-order/:orderId', (req, res) => {
     const orderId = req.params.orderId;
     const sql = "DELETE FROM orders WHERE id = ? AND status = 'menunggu_pembayaran'";
@@ -243,11 +237,8 @@ app.delete('/api/cancel-order/:orderId', (req, res) => {
     });
 });
 
-// ==========================================
-// RUTE ALAMAT TERSIMPAN
-// ==========================================
+// ALAMAT TERSIMPAN 
 
-// Mengambil daftar alamat
 app.get('/api/get_addresses', (req, res) => {
     const username = req.query.username;
 
@@ -262,7 +253,7 @@ app.get('/api/get_addresses', (req, res) => {
     });
 });
 
-// Menyimpan alamat baru
+// Simpan alamat baru
 app.post('/api/save_address', (req, res) => {
     const { username, address, lat, lng, house_type, description } = req.body;
 
@@ -277,7 +268,7 @@ app.post('/api/save_address', (req, res) => {
     });
 });
 
-// Menghapus alamat
+// Hapus alamat
 app.delete('/api/delete_address/:id', (req, res) => {
     const id = req.params.id;
     const sql = "DELETE FROM saved_addresses WHERE id = ?";
@@ -287,7 +278,7 @@ app.delete('/api/delete_address/:id', (req, res) => {
     });
 });
 
-// Memperbarui alamat
+// Edit alamat
 app.put('/api/edit_address/:id', (req, res) => {
     const id = req.params.id;
     const { address, house_type, description } = req.body;
@@ -299,11 +290,9 @@ app.put('/api/edit_address/:id', (req, res) => {
     });
 });
 
-// ==========================================
-// RUTE PESANAN
-// ==========================================
+// PESANAN
 
-// Membuat pesanan baru
+// Buat pesanan baru
 app.post('/api/orders', (req, res) => {
     const {
         user_email,
@@ -316,12 +305,11 @@ app.post('/api/orders', (req, res) => {
         schedule_date,
         schedule_time,
         waktu_transaksi,
-        currency,       // kode mata uang: IDR/CNY/SGD/SAR
-        total_converted // nilai dalam mata uang asing, null jika IDR
+        currency,      
+        total_converted 
     } = req.body;
 
     const sql = "INSERT INTO orders (user_email, service_name, total_amount, currency, total_converted, payment_method, va_number, qris_url, address, schedule_date, schedule_time, waktu_transaksi, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'menunggu_pembayaran')";
-
     db.query(sql, [
         user_email, service_name, total_amount,
         currency || 'IDR',
@@ -334,7 +322,7 @@ app.post('/api/orders', (req, res) => {
     });
 });
 
-// Memperbarui status pesanan
+// Update status pesanan
 app.put('/api/orders/:id/status', (req, res) => {
     const { status } = req.body;
     const orderId = req.params.id;
@@ -344,15 +332,14 @@ app.put('/api/orders/:id/status', (req, res) => {
         if (err) return res.status(500).json({ error: err.message });
 
         // Auto-assign karyawan saat status berubah ke menunggu_konfirmasi
-        if (status === 'menunggu_konfirmasi') {
-            _autoAssignEmployee(orderId);
+        if (status === 'menunggu_konfirmasi') {            _autoAssignEmployee(orderId);
         }
 
         res.status(200).json({ message: `Status berhasil diperbarui menjadi ${status}` });
     });
 });
 
-// Mengambil daftar pesanan pengguna (dengan JOIN employee_name)
+// Ambil pesanan user (dengan nama karyawan)
 app.get('/api/orders/:email', (req, res) => {
     const email = req.params.email;
     const sql = `
@@ -368,11 +355,8 @@ app.get('/api/orders/:email', (req, res) => {
     });
 });
 
-// ==========================================
-// RUTE ADMIN
-// ==========================================
+// ADMIN 
 
-// Login admin
 app.post('/api/admin/login', (req, res) => {
     const { username, password } = req.body;
     if (username === 'admin' && password === 'admin123') {
@@ -382,7 +366,7 @@ app.post('/api/admin/login', (req, res) => {
     }
 });
 
-// Mengambil semua pesanan untuk dashboard admin
+// Semua pesanan untuk dashboard admin
 app.get('/api/admin/orders', (req, res) => {
     const sql = `
         SELECT o.*, e.nama AS employee_name, e.no_hp AS employee_phone
@@ -396,7 +380,7 @@ app.get('/api/admin/orders', (req, res) => {
     });
 });
 
-// Menghitung total pendapatan dan pesanan selesai
+// Total pendapatan dan jumlah pesanan selesai
 app.get('/api/admin/revenue', (req, res) => {
     const sql = "SELECT SUM(total_amount) as total_revenue, COUNT(id) as total_orders FROM orders WHERE status = 'selesai'";
     db.query(sql, (err, results) => {
@@ -408,11 +392,8 @@ app.get('/api/admin/revenue', (req, res) => {
     });
 });
 
-// ==========================================
-// RUTE EVALUASI
-// ==========================================
+// EVALUASI
 
-// Menyimpan evaluasi baru
 app.post('/api/evaluasi', (req, res) => {
     const { email, rating, kesan, saran } = req.body;
 
@@ -427,7 +408,7 @@ app.post('/api/evaluasi', (req, res) => {
     });
 });
 
-// Mengambil semua evaluasi
+// Ambil semua evaluasi
 app.get('/api/evaluasi', (req, res) => {
     const sql = "SELECT id, email, rating, kesan, saran, created_at FROM evaluations ORDER BY created_at DESC";
     db.query(sql, (err, results) => {
@@ -439,11 +420,8 @@ app.get('/api/evaluasi', (req, res) => {
     });
 });
 
-// ==========================================
-// RUTE LIVE CHAT
-// ==========================================
+// LIVE CHAT 
 
-// Mengambil semua pesan untuk pengguna tertentu
 app.get('/api/messages/:email', (req, res) => {
     const email = req.params.email;
     const sql = "SELECT * FROM messages WHERE user_email = ? ORDER BY created_at ASC";
@@ -453,7 +431,7 @@ app.get('/api/messages/:email', (req, res) => {
     });
 });
 
-// Mengirim pesan baru
+// Kirim pesan baru
 app.post('/api/messages', (req, res) => {
     const { user_email, sender, message } = req.body;
     if (!user_email || !sender || !message) {
@@ -466,7 +444,7 @@ app.post('/api/messages', (req, res) => {
     });
 });
 
-// Admin: mengambil daftar semua percakapan
+// Admin: daftar semua percakapan
 app.get('/api/messages/admin/rooms', (req, res) => {
     const sql = `
         SELECT m.user_email, m.message AS last_message, m.created_at,
@@ -485,11 +463,9 @@ app.get('/api/messages/admin/rooms', (req, res) => {
     });
 });
 
-// ==========================================
-// RUTE REVIEW TRANSAKSI (order_reviews)
-// ==========================================
+// ORDER REVIEWS 
 
-// Simpan review untuk pesanan tertentu
+// Simpan review pesanan
 app.post('/api/order-reviews', (req, res) => {
     const { order_id, user_email, rating, review } = req.body;
     if (!order_id || !user_email || !rating || !review) {
@@ -498,7 +474,6 @@ app.post('/api/order-reviews', (req, res) => {
     const sql = "INSERT INTO order_reviews (order_id, user_email, rating, review) VALUES (?, ?, ?, ?)";
     db.query(sql, [order_id, user_email, rating, review], (err, result) => {
         if (err) {
-            // Duplicate key = sudah pernah review
             if (err.code === 'ER_DUP_ENTRY') {
                 return res.status(409).json({ message: 'Ulasan untuk pesanan ini sudah dikirim' });
             }
@@ -509,8 +484,7 @@ app.post('/api/order-reviews', (req, res) => {
 });
 
 // Cek apakah order sudah direview
-app.get('/api/order-reviews/check/:orderId', (req, res) => {
-    const orderId = req.params.orderId;
+app.get('/api/order-reviews/check/:orderId', (req, res) => {    const orderId = req.params.orderId;
     const sql = "SELECT id, rating, review FROM order_reviews WHERE order_id = ?";
     db.query(sql, [orderId], (err, results) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -518,7 +492,7 @@ app.get('/api/order-reviews/check/:orderId', (req, res) => {
     });
 });
 
-// Ambil semua review transaksi (untuk About Us / halaman publik)
+// Semua review (untuk halaman publik)
 app.get('/api/order-reviews', (req, res) => {
     const sql = `
         SELECT r.id, r.order_id, r.user_email, r.rating, r.review, r.created_at,
@@ -533,11 +507,8 @@ app.get('/api/order-reviews', (req, res) => {
     });
 });
 
-// ==========================================
-// RUTE ADUAN / LAPORAN (reports)
-// ==========================================
+// LAPORAN 
 
-// Kirim aduan baru
 app.post('/api/reports', (req, res) => {
     const { order_id, user_email, description, image_base64 } = req.body;
     if (!order_id || !user_email || !description) {
@@ -550,7 +521,7 @@ app.post('/api/reports', (req, res) => {
     });
 });
 
-// Admin: ambil semua laporan
+// Admin: semua laporan
 app.get('/api/admin/reports', (req, res) => {
     const sql = `
         SELECT r.id, r.order_id, r.user_email, r.description,
@@ -567,8 +538,7 @@ app.get('/api/admin/reports', (req, res) => {
 });
 
 // Admin: update status laporan
-app.put('/api/admin/reports/:id/status', (req, res) => {
-    const { status } = req.body;
+app.put('/api/admin/reports/:id/status', (req, res) => {    const { status } = req.body;
     const id = req.params.id;
     const sql = "UPDATE reports SET status = ? WHERE id = ?";
     db.query(sql, [status, id], (err) => {
@@ -577,17 +547,10 @@ app.put('/api/admin/reports/:id/status', (req, res) => {
     });
 });
 
-// ==========================================
-// RUTE ML — CONTENT-BASED FILTERING
-// ==========================================
+// REKOMENDASI (Content-Based Filtering) 
 
-/**
- * Representasi vektor fitur tiap layanan.
- * Dimensi: [kebersihan_umum, teknis, relaksasi, kendaraan, kasur_sofa, harga_rendah, harga_sedang, harga_tinggi]
- *
- * Ini adalah feature matrix yang digunakan untuk menghitung cosine similarity
- * antar layanan — inti dari algoritma Content-Based Filtering.
- */
+// Feature matrix tiap layanan
+// Dimensi: [kebersihan_umum, teknis, relaksasi, kendaraan, kasur_sofa, harga_rendah, harga_sedang, harga_tinggi]
 const SERVICE_FEATURES = {
     'Pemanas Air':      [0, 1, 0, 0, 0, 0, 1, 0],  // teknis, harga sedang
     'Reguler Cleaning': [1, 0, 0, 0, 0, 1, 0, 0],  // kebersihan umum, harga rendah
@@ -610,17 +573,17 @@ const SERVICE_META = {
     'Cuci Sofa':        { icon: '🛋️', price: 'Rp 120.000 – 350.000' },
 };
 
-/** Hitung dot product dua vektor */
+/** Dot product dua vektor */
 function dotProduct(a, b) {
     return a.reduce((sum, val, i) => sum + val * b[i], 0);
 }
 
-/** Hitung magnitude (panjang) vektor */
+/** Magnitude vektor */
 function magnitude(v) {
     return Math.sqrt(v.reduce((sum, val) => sum + val * val, 0));
 }
 
-/** Hitung cosine similarity antara dua vektor fitur */
+/** Cosine similarity antara dua vektor */
 function cosineSimilarity(a, b) {
     const magA = magnitude(a);
     const magB = magnitude(b);
@@ -628,11 +591,7 @@ function cosineSimilarity(a, b) {
     return dotProduct(a, b) / (magA * magB);
 }
 
-/**
- * Bangun profil vektor user berdasarkan histori order.
- * Rata-ratakan vektor semua layanan yang pernah dipesan,
- * dengan bobot lebih tinggi untuk layanan yang sering dipesan.
- */
+// Bangun user profile vector dari histori order (bobot = frekuensi pesan)
 function buildUserProfile(orderedServices) {
     const dim = 8;
     const profile = new Array(dim).fill(0);
@@ -642,33 +601,28 @@ function buildUserProfile(orderedServices) {
         const vec = SERVICE_FEATURES[serviceName];
         if (!vec) continue;
         for (let i = 0; i < dim; i++) {
-            profile[i] += vec[i] * count; // bobot = frekuensi pesan
+            profile[i] += vec[i] * count;
         }
         totalWeight += count;
     }
 
-    // Normalisasi profil
     if (totalWeight > 0) {
         for (let i = 0; i < dim; i++) {
             profile[i] /= totalWeight;
         }
     }
-
     return profile;
 }
 
-// Endpoint ML: Content-Based Filtering Recommendation
 app.get('/api/recommendations/:email', (req, res) => {
     const email = req.params.email;
 
-    // Ambil histori order user
     const sql = "SELECT service_name FROM orders WHERE user_email = ? ORDER BY created_at DESC";
     db.query(sql, [email], (err, results) => {
         if (err) return res.status(500).json({ error: err.message });
 
         const allServices = Object.keys(SERVICE_FEATURES);
 
-        // Jika belum ada histori, kembalikan layanan populer
         if (results.length === 0) {
             const popular = ['Reguler Cleaning', 'Service AC', 'Cuci Kasur'];
             const data = popular.map(name => ({
@@ -681,12 +635,10 @@ app.get('/api/recommendations/:email', (req, res) => {
             return res.status(200).json({ data, method: 'popular', user_has_history: false });
         }
 
-        // Hitung frekuensi tiap layanan yang dipesan
         const serviceCount = {};
         const orderedSet = new Set();
         for (const row of results) {
             const raw = row.service_name || '';
-            // Ambil kategori utama (sebelum ' - ' atau ' – ')
             const category = raw.split(/\s[-–]\s/)[0].trim();
             if (SERVICE_FEATURES[category]) {
                 serviceCount[category] = (serviceCount[category] || 0) + 1;
@@ -694,10 +646,8 @@ app.get('/api/recommendations/:email', (req, res) => {
             }
         }
 
-        // Bangun user profile vector
         const userProfile = buildUserProfile(serviceCount);
 
-        // Hitung similarity score tiap layanan yang BELUM pernah dipesan
         const candidates = allServices
             .filter(name => !orderedSet.has(name))
             .map(name => {
@@ -705,12 +655,10 @@ app.get('/api/recommendations/:email', (req, res) => {
                 const score = cosineSimilarity(userProfile, vec);
                 return { name, score };
             })
-            .sort((a, b) => b.score - a.score); // urutkan dari score tertinggi
+            .sort((a, b) => b.score - a.score);
 
-        // Ambil top-3
         const top3 = candidates.slice(0, 3);
 
-        // Jika kandidat kurang dari 3, tambahkan dari yang sudah dipesan (tanpa duplikat)
         if (top3.length < 3) {
             const usedNames = new Set(top3.map(i => i.name));
             const extras = allServices
@@ -737,7 +685,7 @@ app.get('/api/recommendations/:email', (req, res) => {
     });
 });
 
-/** Generate alasan rekomendasi berdasarkan konteks histori */
+/** Alasan rekomendasi per layanan */
 function generateReason(serviceName, serviceCount) {
     const reasons = {
         'Pemanas Air':      'Perawatan teknis rumah yang sering dibutuhkan',
@@ -754,27 +702,20 @@ function generateReason(serviceName, serviceCount) {
 
 
 
-// ==========================================
-// RUTE KARYAWAN (EMPLOYEE)
-// ==========================================
+// KARYAWAN
 
-/**
- * Fungsi internal: auto-assign karyawan ke order.
- * Dipanggil saat status order berubah ke 'menunggu_konfirmasi'.
- */
+// Auto-assign karyawan ke order saat status berubah ke menunggu_konfirmasi
 function _autoAssignEmployee(orderId) {
-    // Ambil data order dulu
     db.query('SELECT * FROM orders WHERE id = ?', [orderId], (err, orders) => {
         if (err || orders.length === 0) return;
         const order = orders[0];
         const schedDate = order.schedule_date;
         const schedTime = order.schedule_time;
 
-        // Ambil semua karyawan aktif
         db.query('SELECT id FROM employees WHERE is_active = 1', (err2, employees) => {
             if (err2 || employees.length === 0) return;
 
-            // Hitung total order di slot waktu yang sama (max 10)
+            // Hitung slot penuh (max 10 order per slot waktu)
             const countSql = `
                 SELECT COUNT(*) AS total FROM orders
                 WHERE schedule_date = ? AND schedule_time = ?
@@ -801,7 +742,7 @@ function _autoAssignEmployee(orderId) {
                         loadMap[row.employee_id] = row.cnt;
                     }
 
-                    // Cari karyawan dengan beban paling sedikit
+                    // Pilih karyawan dengan beban paling ringan
                     let minLoad = Infinity;
                     let candidates = [];
                     for (const emp of employees) {
@@ -814,7 +755,7 @@ function _autoAssignEmployee(orderId) {
                         }
                     }
 
-                    // Random jika beban sama
+                    // Random jika beban sama rata
                     const chosen = candidates[Math.floor(Math.random() * candidates.length)];
 
                     // Assign ke order
@@ -857,9 +798,8 @@ app.put('/api/employee/orders/:id/status', (req, res) => {
     const { status, employee_id } = req.body;
     const orderId = req.params.id;
 
-    // Validasi: hanya boleh update ke 'pengerjaan' atau 'selesai'
-    if (!['pengerjaan', 'selesai'].includes(status)) {
-        return res.status(400).json({ error: 'Status tidak valid untuk karyawan' });
+// Validasi: hanya boleh update ke 'pengerjaan' atau 'selesai'
+    if (!['pengerjaan', 'selesai'].includes(status)) {        return res.status(400).json({ error: 'Status tidak valid untuk karyawan' });
     }
 
     const sql = 'UPDATE orders SET status = ? WHERE id = ? AND employee_id = ?';
@@ -912,9 +852,93 @@ app.post('/api/orders/auto-cancel', (req, res) => {
     });
 });
 
-// ==========================================
-// END RUTE KARYAWAN
-// ==========================================
+// CONFIG & KURS 
+
+// Endpoint config untuk Flutter (API key & base URL)
+app.get('/api/config/app', (req, res) => {
+    res.status(200).json({
+        gemini_api_key: process.env.GEMINI_API_KEY || '',
+        base_url:       process.env.APP_BASE_URL   || `http://localhost:${process.env.PORT || 3000}`,
+    });
+});
+
+// Cache kurs — refresh maksimal sekali per jam
+const _rateCache = {
+    rates:     null,
+    fetchedAt: 0,
+};
+const CACHE_TTL_MS = 60 * 60 * 1000;
+
+// Kurs fallback (1 unit mata uang asing dalam IDR)
+const FALLBACK_RATES_TO_IDR = {
+    CNY: 2250.0,
+    SGD: 11500.0,
+    SAR: 4100.0,
+};
+
+// Fetch kurs dari open.er-api.com, invert ke IDR per unit asing
+async function _fetchLiveRates() {
+    const response = await fetch('https://open.er-api.com/v6/latest/IDR');
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    if (data.result !== 'success') throw new Error('API response error');
+
+    const rates = {};
+    for (const code of ['CNY', 'SGD', 'SAR']) {
+        const rateFromIdr = data.rates[code];
+        if (rateFromIdr && rateFromIdr > 0) {
+            rates[code] = parseFloat((1 / rateFromIdr).toFixed(2));
+        } else {
+            rates[code] = FALLBACK_RATES_TO_IDR[code];
+        }
+    }
+    return rates;
+}
+
+// GET /api/exchange-rates — kurs IDR per 1 unit CNY/SGD/SAR, cache 1 jam
+app.get('/api/exchange-rates', async (req, res) => {
+    const now = Date.now();
+
+    if (_rateCache.rates && (now - _rateCache.fetchedAt) < CACHE_TTL_MS) {
+        return res.status(200).json({
+            rates:      _rateCache.rates,
+            source:     'cache',
+            fetched_at: new Date(_rateCache.fetchedAt).toISOString(),
+            cached:     true,
+        });
+    }
+
+    try {
+        const rates = await _fetchLiveRates();
+        _rateCache.rates     = rates;
+        _rateCache.fetchedAt = now;
+        return res.status(200).json({
+            rates,
+            source:     'live',
+            fetched_at: new Date(now).toISOString(),
+            cached:     false,
+        });
+    } catch (err) {
+        console.warn('Gagal fetch kurs live, pakai fallback:', err.message);
+
+        if (_rateCache.rates) {
+            return res.status(200).json({
+                rates:      _rateCache.rates,
+                source:     'stale_cache',
+                fetched_at: new Date(_rateCache.fetchedAt).toISOString(),
+                cached:     true,
+            });
+        }
+
+        return res.status(200).json({
+            rates:      FALLBACK_RATES_TO_IDR,
+            source:     'fallback',
+            fetched_at: new Date(now).toISOString(),
+            cached:     false,
+        });
+    }
+});
+
 
 app.get('/', (req, res) => {
     res.send('Server Bersih.In berjalan');

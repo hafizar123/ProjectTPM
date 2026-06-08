@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -133,7 +133,16 @@ class _LiveChatPageState extends State<LiveChatPage> {
         ),
       ),
       body: Column(children: [
-        // ── Pesan ────────────────────────────────────────────
+
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
         Expanded(
           child: _isLoading
               ? Center(child: CircularProgressIndicator(color: toscaMedium))
@@ -150,7 +159,15 @@ class _LiveChatPageState extends State<LiveChatPage> {
                         ),
         ),
 
-        // ── Input ─────────────────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
         if (_email.isNotEmpty)
           Container(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
@@ -281,33 +298,39 @@ class _LiveChatPageState extends State<LiveChatPage> {
 
   /// Bubble khusus untuk pesan laporan — bisa diklik untuk lihat detail
   Widget _buildReportBubble(String text, bool isUser, dynamic msg) {
-    // Parse isi laporan dari teks
-    final lines = text.split('\n');
+    // Format pesan notifikasi laporan:
+    // "🚩 Laporan baru untuk pesanan #X — Nama Layanan telah dikirim..."
+    // Atau format lama dengan newlines. Kita extract orderId dari keduanya.
     String orderId = '';
     String layanan = '';
-    String keterangan = '';
-    bool adaGambar = false;
 
-    for (final line in lines) {
-      if (line.contains('LAPORAN PESANAN')) {
-        orderId = line.replaceAll(RegExp(r'[^0-9]'), '');
-      } else if (line.startsWith('Layanan:')) {
-        layanan = line.replaceFirst('Layanan:', '').trim();
-      } else if (line.startsWith('Keterangan:')) {
-        keterangan = line.replaceFirst('Keterangan:', '').trim();
-      } else if (line.contains('Gambar dilampirkan') || line.contains('📎')) {
-        adaGambar = true;
+    // Coba ambil orderId dari format "#X"
+    final orderIdMatch = RegExp(r'#(\d+)').firstMatch(text);
+    if (orderIdMatch != null) orderId = orderIdMatch.group(1) ?? '';
+
+    // Coba ambil layanan dari format "pesanan #X — Nama Layanan telah"
+    final layananMatch = RegExp(r'#\d+\s*[—–-]\s*(.+?)\s*telah').firstMatch(text);
+    if (layananMatch != null) layanan = layananMatch.group(1)?.trim() ?? '';
+
+    // Fallback: parse format lama dengan newlines
+    if (layanan.isEmpty) {
+      for (final line in text.split('\n')) {
+        if (line.startsWith('Layanan:')) layanan = line.replaceFirst('Layanan:', '').trim();
       }
     }
 
     return GestureDetector(
-      onTap: () => _showReportDetail(
-        orderId: orderId,
-        layanan: layanan,
-        keterangan: keterangan,
-        adaGambar: adaGambar,
-        time: _formatTime(msg['created_at']?.toString()),
-      ),
+      onTap: () {
+        // Selalu fetch dari DB untuk dapat keterangan + foto terbaru
+        if (orderId.isNotEmpty) {
+          _fetchAndShowReportDetail(
+            int.tryParse(orderId) ?? 0,
+            layanan: layanan,
+            keterangan: '',
+            time: _formatTime(msg['created_at']?.toString()),
+          );
+        }
+      },
       child: Container(
         constraints:
             BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
@@ -368,55 +391,39 @@ class _LiveChatPageState extends State<LiveChatPage> {
                 Row(children: [
                   Icon(Icons.cleaning_services_rounded,
                       size: 13,
-                      color: isUser
-                          ? Colors.white70
-                          : Colors.grey.shade500),
+                      color: isUser ? Colors.white70 : Colors.grey.shade500),
                   const SizedBox(width: 5),
                   Expanded(
                     child: Text(layanan,
                         style: GoogleFonts.outfit(
                             fontSize: 12,
-                            color: isUser
-                                ? Colors.white70
-                                : Colors.grey.shade600),
+                            color: isUser ? Colors.white70 : Colors.grey.shade600,
+                            fontWeight: FontWeight.w500),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis),
                   ),
                 ]),
                 const SizedBox(height: 6),
               ],
-              if (keterangan.isNotEmpty)
-                Text(
-                  keterangan,
-                  style: GoogleFonts.outfit(
-                      fontSize: 13,
-                      color: isUser ? Colors.white : Colors.black87,
-                      height: 1.4),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              if (adaGambar) ...[
-                const SizedBox(height: 8),
-                Row(children: [
-                  Icon(Icons.image_rounded,
-                      size: 13,
-                      color: isUser ? toscaLight : toscaMedium),
-                  const SizedBox(width: 5),
-                  Text('Foto terlampir',
-                      style: GoogleFonts.outfit(
-                          fontSize: 11,
-                          color: isUser ? toscaLight : toscaMedium,
-                          fontWeight: FontWeight.w600)),
-                ]),
-              ],
+              Text(
+                'Laporan telah dikirim ke tim kami.',
+                style: GoogleFonts.outfit(
+                    fontSize: 12,
+                    color: isUser ? Colors.white70 : Colors.grey.shade600,
+                    fontStyle: FontStyle.italic),
+              ),
               const SizedBox(height: 8),
               Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-                Text('Ketuk untuk detail',
+                Icon(Icons.touch_app_rounded, size: 11,
+                    color: isUser ? const Color(0xFF48C9B0) : const Color(0xFF025955)),
+                const SizedBox(width: 4),
+                Text('Ketuk untuk lihat keterangan & foto',
                     style: GoogleFonts.outfit(
                         fontSize: 10,
+                        fontWeight: FontWeight.w600,
                         color: isUser
-                            ? Colors.white54
-                            : Colors.grey.shade400,
+                            ? const Color(0xFF48C9B0)
+                            : const Color(0xFF025955),
                         fontStyle: FontStyle.italic)),
               ]),
             ]),
@@ -690,7 +697,15 @@ class _LiveChatPageState extends State<LiveChatPage> {
   }
 }
 
-// ── Admin Chat Room List ──────────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
 class AdminChatPage extends StatefulWidget {
   const AdminChatPage({super.key});
   @override
@@ -785,7 +800,15 @@ class _AdminChatPageState extends State<AdminChatPage> {
   }
 }
 
-// ── Admin Chat Room (balas pesan user) ───────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
 class AdminChatRoomPage extends StatefulWidget {
   final String userEmail;
   const AdminChatRoomPage({super.key, required this.userEmail});
@@ -1013,8 +1036,23 @@ class _AdminChatRoomPageState extends State<AdminChatRoomPage> {
                     style: GoogleFonts.outfit(fontSize: 13, color: Colors.white, height: 1.4),
                     maxLines: 2, overflow: TextOverflow.ellipsis),
               const SizedBox(height: 6),
-              Text('Ketuk untuk detail',
-                  style: GoogleFonts.outfit(fontSize: 10, color: Colors.white38, fontStyle: FontStyle.italic)),
+              if (layanan.isNotEmpty)
+                Text(
+                  'Layanan: $layanan',
+                  style: GoogleFonts.outfit(fontSize: 11, color: Colors.white54, fontWeight: FontWeight.w500),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              const SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  const Icon(Icons.touch_app_rounded, size: 11, color: Color(0xFF00D4AA)),
+                  const SizedBox(width: 4),
+                  Text('Ketuk untuk lihat foto & detail',
+                      style: GoogleFonts.outfit(fontSize: 10, color: Color(0xFF00D4AA), fontStyle: FontStyle.italic, fontWeight: FontWeight.w600)),
+                ],
+              ),
             ]),
           ),
         ]),

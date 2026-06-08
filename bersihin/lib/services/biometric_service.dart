@@ -1,23 +1,18 @@
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// BiometricService dengan isolasi per-akun.
-/// Setiap akun (email) punya key sendiri di SharedPreferences,
-/// sehingga 1 sidik jari hanya bisa login ke 1 akun yang didaftarkan.
 class BiometricService {
   static final LocalAuthentication _auth = LocalAuthentication();
 
-  // ── Key per-akun (suffix = email yang di-sanitize) ───────────
   static String _keyEnabled(String email)  => 'bio_enabled_${_sanitize(email)}';
   static String _keyPassword(String email) => 'bio_password_${_sanitize(email)}';
 
-  // Key global: daftar semua email yang sudah daftarkan biometrik
   static const _keyRegisteredEmails = 'bio_registered_emails';
 
   static String _sanitize(String email) =>
       email.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_');
 
-  // ── Cek apakah device support biometrik ─────────────────────
+  // Cek apakah device support biometrik
   static Future<bool> isAvailable() async {
     try {
       final canCheck    = await _auth.canCheckBiometrics;
@@ -28,15 +23,14 @@ class BiometricService {
     }
   }
 
-  // ── Cek apakah akun tertentu sudah daftarkan biometrik ───────
+  // Cek apakah akun tertentu sudah aktifkan biometrik
   static Future<bool> isEnabledForAccount(String email) async {
     if (email.isEmpty) return false;
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_keyEnabled(email)) ?? false;
   }
 
-  // ── Cek apakah ADA akun manapun yang sudah daftar biometrik ──
-  // Dipakai di login page untuk menampilkan tombol biometrik
+  // Cek apakah ada akun yang sudah daftar biometrik (untuk tombol di login page)
   static Future<bool> hasAnyRegistered() async {
     final prefs = await SharedPreferences.getInstance();
     final emails = prefs.getStringList(_keyRegisteredEmails) ?? [];
@@ -46,7 +40,7 @@ class BiometricService {
     return false;
   }
 
-  // ── Daftarkan biometrik untuk akun tertentu ──────────────────
+  // Daftarkan biometrik 
   static Future<bool> enroll({
     required String email,
     required String password,
@@ -77,7 +71,7 @@ class BiometricService {
     }
   }
 
-  // ── Autentikasi biometrik → kembalikan kredensial akun ───────
+  // Autentikasi biometrik, kembalikan kredensial akun
   static Future<Map<String, String>?> authenticate() async {
     try {
       final prefs  = await SharedPreferences.getInstance();
@@ -98,14 +92,14 @@ class BiometricService {
 
       if (!authenticated) return null;
 
-      // Filter akun admin dari daftar
+      // Filter akun admin
       final userEmails = activeEmails
           .where((e) => e.toLowerCase() != 'admin')
           .toList();
 
       if (userEmails.isEmpty) return null;
 
-      // Selalu kembalikan format multi-akun agar dialog pilih akun selalu muncul
+      // Selalu format multi-akun agar dialog pilih akun muncul
       return {
         'multi': 'true',
         'emails': userEmails.join(','),
@@ -115,13 +109,13 @@ class BiometricService {
     }
   }
 
-  // ── Ambil password tersimpan untuk akun tertentu ─────────────
+  // Ambil password tersimpan untuk akun tertentu
   static Future<String?> getPasswordForAccount(String email) async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_keyPassword(email));
   }
 
-  // ── Nonaktifkan biometrik untuk akun tertentu ────────────────
+  // Nonaktifkan biometrik untuk akun tertentu
   static Future<void> disableForAccount(String email) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyEnabled(email), false);
@@ -131,7 +125,7 @@ class BiometricService {
     await prefs.setStringList(_keyRegisteredEmails, emails);
   }
 
-  // ── Update password tersimpan (saat user ganti password) ─────
+  // Update password tersimpan saat user ganti password
   static Future<void> updatePassword({
     required String email,
     required String newPassword,

@@ -7,9 +7,7 @@ import '../views/support/kesan_pesan_page.dart';
 import '../views/profile/profile_page.dart';
 import '../views/support/ai_chat_page.dart';
 
-// ==========================================
-// WIDGET BOTTOM NAVIGATION BAR
-// ==========================================
+// Bottom Navigation Bar
 class CustomBottomNavBar extends StatelessWidget {
   final int selectedIndex;
 
@@ -76,9 +74,7 @@ class CustomBottomNavBar extends StatelessWidget {
   }
 }
 
-// ==========================================
-// WIDGET FLOATING ACTION BUTTON (FAB)
-// ==========================================
+// Floating Action Button
 class CustomFAB extends StatelessWidget {
   const CustomFAB({super.key});
 

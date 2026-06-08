@@ -5,17 +5,13 @@ import 'package:image_picker/image_picker.dart';
 import '../services/auth_service.dart';
 import '../models/user_model.dart';
 
-/// Controller yang menangani semua logika autentikasi dan profil pengguna.
-/// Memisahkan business logic dari UI layer.
+/// Controller autentikasi dan profil pengguna.
 class AuthController {
   final AuthService _authService = AuthService();
 
-  // ==========================================
   // AUTENTIKASI
-  // ==========================================
 
-  Future<Map<String, dynamic>> login(String emailOrUsername, String password) async {
-    return await _authService.login(emailOrUsername, password);
+  Future<Map<String, dynamic>> login(String emailOrUsername, String password) async {    return await _authService.login(emailOrUsername, password);
   }
 
   Future<Map<String, dynamic>> loginAdmin(String username, String password) async {
@@ -32,15 +28,13 @@ class AuthController {
     await prefs.setString('saved_username', username);
 
     // Restore foto dari cache per-email jika ada
-    // Ini membuat foto langsung muncul saat login tanpa harus fetch server dulu
     final cachedAvatar = prefs.getString('avatar_cache_${_sanitizeEmail(email)}');
     if (cachedAvatar != null && cachedAvatar.isNotEmpty) {
       await prefs.setString('profile_base64', cachedAvatar);
     }
   }
 
-  /// Logout: hapus sesi aktif tapi PERTAHANKAN cache foto per-email
-  /// agar foto langsung muncul saat login lagi tanpa harus fetch ulang.
+  /// Logout: hapus sesi aktif, pertahankan cache foto per-email
   Future<void> clearSession() async {
     final prefs = await SharedPreferences.getInstance();
     final email = prefs.getString('saved_email') ?? '';
@@ -51,12 +45,7 @@ class AuthController {
       await prefs.setString('avatar_cache_${_sanitizeEmail(email)}', currentBase64);
     }
 
-    // Hapus sesi aktif saja, bukan semua data
-    // PENTING: key berikut TIDAK dihapus agar fitur tetap berjalan setelah logout-login:
-    // - order_created_at_<id>  → countdown timer pembayaran
-    // - order_currency_<id>    → mata uang yang dipilih saat order
-    // - order_converted_<id>   → nilai total dalam mata uang asing
-    // - avatar_cache_<email>   → cache foto profil per-akun
+    // Hapus sesi aktif; key order_*, avatar_cache_* sengaja dipertahankan
     await prefs.remove('saved_email');
     await prefs.remove('saved_username');
     await prefs.remove('saved_password');
@@ -86,12 +75,9 @@ class AuthController {
     return prefs.getString('saved_username') ?? 'Tamu';
   }
 
-  // ==========================================
   // PROFIL
-  // ==========================================
 
-  /// Mengambil data profil dari server dan menyimpan ke local cache.
-  /// Mengembalikan [UserModel] jika berhasil, null jika gagal.
+  /// Ambil profil dari server dan simpan ke cache lokal.
   Future<UserModel?> fetchAndCacheProfile(String email) async {
     final response = await _authService.getProfile(email);
     if (response['statusCode'] == 200) {
@@ -107,9 +93,7 @@ class AuthController {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('saved_username', username);
       if (cleanBase64 != null) {
-        // Simpan ke cache aktif
         await prefs.setString('profile_base64', cleanBase64);
-        // Simpan juga ke cache per-email agar tetap ada setelah logout
         await prefs.setString('avatar_cache_${_sanitizeEmail(email)}', cleanBase64);
       }
 
@@ -118,21 +102,17 @@ class AuthController {
     return null;
   }
 
-  /// Mengambil data profil dari local cache (SharedPreferences).
-  /// Jika cache aktif kosong, coba restore dari cache per-email.
+  /// Ambil profil dari cache lokal. Jika kosong, coba restore dari cache per-email.
   Future<UserModel> getCachedProfile() async {
     final prefs = await SharedPreferences.getInstance();
     final email = prefs.getString('saved_email') ?? '';
 
-    // Coba ambil dari cache aktif dulu
     String? base64 = prefs.getString('profile_base64');
 
-    // Jika kosong, restore dari cache per-email (setelah logout-login)
     if ((base64 == null || base64.isEmpty) && email.isNotEmpty) {
       final perEmailCache = prefs.getString('avatar_cache_${_sanitizeEmail(email)}');
       if (perEmailCache != null && perEmailCache.isNotEmpty) {
         base64 = perEmailCache;
-        // Restore ke cache aktif sekalian
         await prefs.setString('profile_base64', perEmailCache);
       }
     }
@@ -144,8 +124,7 @@ class AuthController {
     );
   }
 
-  /// Memilih gambar dari galeri atau kamera, lalu mengompresinya.
-  /// Mengembalikan path file lokal jika berhasil, null jika dibatalkan.
+  /// Pilih gambar dari galeri atau kamera (compressed).
   Future<String?> pickImage(ImageSource source) async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(
@@ -161,7 +140,7 @@ class AuthController {
     return null;
   }
 
-  /// Mengonversi file gambar ke Base64 string.
+  /// Konversi file gambar ke Base64.
   Future<String?> imageToBase64(String imagePath) async {
     final file = File(imagePath);
     if (await file.exists()) {
@@ -171,7 +150,7 @@ class AuthController {
     return null;
   }
 
-  /// Menyimpan perubahan profil ke server dan memperbarui local cache.
+  /// Simpan perubahan profil ke server dan update cache lokal.
   Future<Map<String, dynamic>> updateProfile({
     required String oldEmail,
     required String newEmail,
@@ -182,18 +161,15 @@ class AuthController {
     String? base64Image;
 
     if (imagePath != null) {
-      // Ada foto baru dipilih — konversi ke base64
       base64Image = await imageToBase64(imagePath);
     } else {
-      // Tidak ada foto baru — ambil dari cache agar tidak terhapus di server
+      // Tidak ada foto baru, ambil dari cache agar foto lama tidak hilang di server
       final prefs = await SharedPreferences.getInstance();
       final cached = prefs.getString('profile_base64') ??
           prefs.getString('avatar_cache_${_sanitizeEmail(oldEmail)}');
       if (cached != null && cached.isNotEmpty) {
         base64Image = cached;
       }
-      // Jika benar-benar tidak ada foto sama sekali, biarkan null
-      // sehingga server tidak menerima field avatar_url dan foto lama tetap aman
     }
 
     final result = await _authService.updateProfile(

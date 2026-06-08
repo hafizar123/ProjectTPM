@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -299,7 +299,15 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   const SizedBox(height: 28),
 
-                  // ── Toggle Biometrik ──────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
                   if (_biometricAvailable) ...[
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
@@ -384,7 +392,15 @@ class _SettingsPageState extends State<SettingsPage> {
 
                   const SizedBox(height: 16),
 
-                  // ── Hapus Akun ────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
                   GestureDetector(
                     onTap: _isLoading ? null : _showDeleteAccountDialog,
                     child: Container(

@@ -52,9 +52,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     super.dispose();
   }
 
-  // ==========================================
-  // FUNGSI LBS: AMBIL LOKASI HP (ANTI NGADAT)
-  // ==========================================
+  // Ambil lokasi GPS perangkat
   Future<void> _getCurrentLocation() async {
     if (!mounted) return;
     setState(() => _isLoading = true);
@@ -86,7 +84,6 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
         return;
       }
 
-      // ambil posisi menggunakan akurasi medium agar cepat dapet
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.medium,
         timeLimit: const Duration(seconds: 8),
@@ -102,9 +99,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     }
   }
 
-  // ==========================================
-  // FUNGSI AUTOCOMPLETE NOMINATIM (USER-AGENT VIP)
-  // ==========================================
+  // Autocomplete pencarian alamat via Nominatim
   void _onSearchChanged(String query) {
     if (_searchDebounce?.isActive ?? false) _searchDebounce!.cancel();
     
@@ -126,11 +121,10 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     setState(() => _isSearching = true);
     
     try {
-      // Balik menggunakan Nominatim tapi menggunakan identitas Anda agar tidak di-banned!
       final url = Uri.parse('https://nominatim.openstreetmap.org/search?q=$query&format=json&addressdetails=1&limit=5&countrycodes=id');
       final response = await http.get(url, headers: {
         'User-Agent': 'BersihInApp_SimonPulung_UPNYK/1.0'
-      }).timeout(const Duration(seconds: 10)); // Batas waktu 10 detik agar tidak muter selamanya
+      }).timeout(const Duration(seconds: 10));
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -152,7 +146,6 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   void _selectSuggestion(dynamic place) {
     FocusScope.of(context).unfocus();
     
-    // Nominatim balikin lat/lon di root objectnye
     LatLng pos = LatLng(double.parse(place['lat']), double.parse(place['lon'])); 
     String namaTempat = place['name'] ?? place['display_name'].split(',')[0];
 
@@ -164,9 +157,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     _updateLocation(pos);
   }
 
-  // ==========================================
-  // FUNGSI REVERSE GEOCODE: TITIK -> ALAMAT
-  // ==========================================
+  // Reverse geocode: koordinat ke teks alamat
   void _onMapEvent(MapCamera camera, bool hasGesture) {
     if (hasGesture) {
       if (_mapDebounce?.isActive ?? false) _mapDebounce!.cancel();
@@ -264,7 +255,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
             ),
           ),
 
-          // LOADING DIMATIIN jika sudah KELAR
+          // Tutup loading jika sudah selesai
           if (_isLoading)
             Container(color: Colors.white.withOpacity(0.5), child: Center(child: CircularProgressIndicator(color: toscaDark))),
 
@@ -378,7 +369,6 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                           height: 55,
                           child: ElevatedButton(
                             onPressed: () {
-                              // Langsung lempar koordinat & alamat ke halaman detail hunian !
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -391,7 +381,6 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                                   ),
                                 ),
                               ).then((value) {
-                                // jika balik dari simpan detail, Map ikutan nutup !
                                 if (value == true) Navigator.pop(context, true);
                               });
                             },

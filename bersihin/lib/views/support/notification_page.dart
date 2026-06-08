@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
@@ -109,7 +109,15 @@ class _NotificationPageState extends State<NotificationPage> {
     if (mounted) setState(() => _items = []);
   }
 
-  // ── warna & ikon per tipe ────────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
   Color _typeColor(String type) {
     switch (type) {
       case 'payment':  return Colors.red.shade600;
@@ -153,7 +161,16 @@ class _NotificationPageState extends State<NotificationPage> {
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          // ── HEADER ──────────────────────────────────────────
+
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
           SliverAppBar(
             expandedHeight: 160,
             pinned: true,
@@ -244,7 +261,15 @@ class _NotificationPageState extends State<NotificationPage> {
             ),
           ),
 
-          // ── BODY ────────────────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
           SliverToBoxAdapter(
             child: _isLoading
                 ? Padding(

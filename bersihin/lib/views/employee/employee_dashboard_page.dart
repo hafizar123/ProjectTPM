@@ -58,7 +58,7 @@ class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
     }
   }
 
-  // ── Stat helpers ─────────────────────────────────────────────
+  // Stat helpers
   String _todayStr() {
     final now = DateTime.now();
     return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
@@ -75,7 +75,7 @@ class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
   int get _doneOrders =>
       _orders.where((o) => o['status'] == 'selesai').length;
 
-  // ── Status helpers ────────────────────────────────────────────
+  // Status helpers
   Color _statusColor(String s) {
     switch (s) {
       case 'menunggu_konfirmasi': return Colors.orange.shade400;
@@ -117,7 +117,7 @@ class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
     );
   }
 
-  // ── APP BAR ───────────────────────────────────────────────────
+  // APP BAR
   Widget _buildAppBar() {
     return SliverAppBar(
       expandedHeight: 200,
@@ -223,7 +223,7 @@ class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
     );
   }
 
-  // ── STATS ROW ─────────────────────────────────────────────────
+  // STATS ROW
   Widget _buildStatsRow() {
     return SliverToBoxAdapter(
       child: Padding(
@@ -262,7 +262,7 @@ class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
     );
   }
 
-  // ── SECTION TITLE ─────────────────────────────────────────────
+  // SECTION TITLE
   Widget _buildSectionTitle() {
     return SliverToBoxAdapter(
       child: Padding(
@@ -278,7 +278,7 @@ class _EmployeeDashboardPageState extends State<EmployeeDashboardPage> {
     );
   }
 
-  // ── ORDER LIST ────────────────────────────────────────────────
+  // ORDER LIST
   Widget _buildOrderList() {
     if (_isLoading) {
       return const SliverToBoxAdapter(

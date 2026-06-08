@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -212,7 +212,16 @@ class _ProfilePageState extends State<ProfilePage> {
                       ).then((value) => _loadProfileData());
                     },
                   ),
-                  // ── Menu Notifikasi dengan badge unread ──────
+
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
                   _buildMenuOption(
                     Icons.notifications_outlined,
                     'Notifikasi',
@@ -265,7 +274,16 @@ class _ProfilePageState extends State<ProfilePage> {
                     width: double.infinity,
                     height: 55,
                     child: _isGuest
-                        // ── Belum login → tombol hijau ──────────────────
+
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
                         ? ElevatedButton.icon(
                             onPressed: () => Navigator.push(
                               context,
@@ -283,7 +301,16 @@ class _ProfilePageState extends State<ProfilePage> {
                               shadowColor: const Color(0xFF025955).withOpacity(0.4),
                             ),
                           )
-                        // ── Sudah login → tombol merah keluar ───────────
+
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
                         : OutlinedButton.icon(
                             onPressed: _showLogoutDialog,
                             icon: Icon(Icons.logout_rounded, color: Colors.redAccent.shade400),

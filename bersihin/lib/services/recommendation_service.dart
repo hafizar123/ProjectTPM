@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'auth_service.dart';
 
-/// Model data untuk satu rekomendasi layanan
+/// Data model satu rekomendasi layanan.
 class ServiceRecommendation {
   final String serviceName;
   final String reason;
@@ -23,9 +23,8 @@ class ServiceRecommendation {
 class RecommendationService {
   static String get _baseUrl => AuthService.baseUrl;
 
-  // ── Feature matrix: 8 dimensi per layanan ──────────────────
-  // [kebersihan_umum, teknis, relaksasi, kendaraan, kasur_sofa,
-  //  harga_rendah, harga_sedang, harga_tinggi]
+  // Feature matrix 8 dimensi per layanan
+  // kebersihan_umum, teknis, relaksasi, kendaraan, kasur_sofa, harga_rendah, harga_sedang, harga_tinggi
   static const Map<String, List<double>> _serviceVectors = {
     'Pemanas Air':      [0, 1, 0, 0, 0, 0, 1, 0],
     'Reguler Cleaning': [1, 0, 0, 0, 0, 1, 0, 0],
@@ -70,7 +69,7 @@ class RecommendationService {
     'Cuci Sofa':        'Sofa bersih untuk ruang tamu yang nyaman',
   };
 
-  // ── Cosine Similarity ───────────────────────────────────────
+  // Cosine similarity dua vektor
   double _cosineSimilarity(List<double> a, List<double> b) {
     double dot = 0, magA = 0, magB = 0;
     for (int i = 0; i < a.length; i++) {
@@ -82,7 +81,7 @@ class RecommendationService {
     return denom == 0 ? 0 : dot / denom;
   }
 
-  // ── Bangun user profile vector dari histori order ───────────
+  // Bangun user profile vector dari histori order
   List<double> _buildUserProfile(Map<String, int> serviceCount) {
     final profile = List<double>.filled(8, 0);
     int totalWeight = 0;
@@ -104,10 +103,9 @@ class RecommendationService {
     return profile;
   }
 
-  /// Ambil rekomendasi ML untuk user yang sudah login
+  /// Ambil rekomendasi untuk user yang sudah login (Content-Based Filtering).
   Future<List<ServiceRecommendation>> getRecommendations(String email) async {
     try {
-      // 1. Ambil histori order dari backend
       final response = await http
           .get(Uri.parse('$_baseUrl/orders/$email'))
           .timeout(const Duration(seconds: 10));
@@ -117,16 +115,14 @@ class RecommendationService {
       final body = jsonDecode(response.body);
       final List<dynamic> orders = body['data'] ?? [];
 
-      // 2. Kalau belum ada order, tampilkan populer
       if (orders.isEmpty) return _getPopularRecommendations();
 
-      // 3. Hitung frekuensi tiap layanan yang pernah dipesan
       final Map<String, int> serviceCount = {};
       final Set<String> orderedSet = {};
 
       for (final order in orders) {
         final raw = (order['service_name'] ?? '').toString();
-        // Ambil kategori utama sebelum ' - ' atau ' – '
+        // Ambil kategori utama, abaikan sub-paket setelah ' - ' atau ' - '
         final category = raw.contains(' – ')
             ? raw.split(' – ')[0].trim()
             : raw.contains(' - ')
@@ -139,10 +135,8 @@ class RecommendationService {
         }
       }
 
-      // 4. Bangun user profile vector (Content-Based Filtering)
       final userProfile = _buildUserProfile(serviceCount);
 
-      // 5. Hitung similarity semua layanan yang BELUM pernah dipesan
       final allServices = _serviceVectors.keys.toList();
       final candidates = allServices
           .where((name) => !orderedSet.contains(name))
@@ -153,7 +147,6 @@ class RecommendationService {
           .toList()
         ..sort((a, b) => b.value.compareTo(a.value));
 
-      // 6. Ambil top-3, kalau kurang tambah dari yang sudah dipesan
       final top3 = candidates.take(3).toList();
       if (top3.length < 3) {
         final usedNames = top3.map((e) => e.key).toSet();
@@ -168,7 +161,6 @@ class RecommendationService {
         top3.addAll(extras.take(3 - top3.length));
       }
 
-      // 7. Pastikan tidak ada duplikat
       final seen = <String>{};
       final unique = top3.where((e) => seen.add(e.key)).toList();
 
@@ -185,8 +177,7 @@ class RecommendationService {
     }
   }
 
-  /// Rekomendasi populer untuk guest (tanpa login) — tidak statis,
-  /// diurutkan berdasarkan rating dari order_reviews di backend
+  /// Rekomendasi untuk guest, diurutkan dari rating tertinggi di backend.
   Future<List<ServiceRecommendation>> getPopularPublicAsync() async {
     try {
       final response = await http
@@ -198,7 +189,7 @@ class RecommendationService {
         final List<dynamic> reviews = body['data'] ?? [];
 
         if (reviews.isNotEmpty) {
-          // Hitung rata-rata rating per layanan
+          // Rata-rata rating per layanan
           final Map<String, List<double>> ratingMap = {};
           for (final r in reviews) {
             final raw = (r['service_name'] ?? '').toString();
@@ -213,7 +204,6 @@ class RecommendationService {
             }
           }
 
-          // Urutkan berdasarkan rata-rata rating tertinggi
           final ranked = ratingMap.entries
               .map((e) => MapEntry(
                     e.key,
@@ -223,9 +213,7 @@ class RecommendationService {
             ..sort((a, b) => b.value.compareTo(a.value));
 
           if (ranked.isNotEmpty) {
-            // Ambil top-3 berdasarkan rating
             final top = ranked.take(3).toList();
-            // Kalau kurang dari 3, tambah dari populer default
             final usedNames = top.map((e) => e.key).toSet();
             if (top.length < 3) {
               final defaults = ['Reguler Cleaning', 'Service AC', 'Cuci Kasur']

@@ -36,7 +36,7 @@ class AboutPage extends StatelessWidget {
         physics: const BouncingScrollPhysics(),
         child: Column(
           children: [
-            // ── Header perusahaan ────────────────────────────
+            // Header perusahaan
             Container(
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(25, 32, 25, 36),
@@ -90,7 +90,7 @@ class AboutPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Tentang perusahaan ───────────────────────
+                  // Tentang perusahaan
                   _sectionCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -109,7 +109,7 @@ class AboutPage extends StatelessWidget {
 
                   const SizedBox(height: 16),
 
-                  // ── Visi & Misi ──────────────────────────────
+                  // Visi & Misi
                   _sectionCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -135,7 +135,7 @@ class AboutPage extends StatelessWidget {
 
                   const SizedBox(height: 16),
 
-                  // ── Tim CEO ──────────────────────────────────
+                  // Tim CEO
                   _sectionCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -175,7 +175,7 @@ class AboutPage extends StatelessWidget {
 
                   const SizedBox(height: 16),
 
-                  // ── Nilai perusahaan ─────────────────────────
+                  // Nilai perusahaan
                   _sectionCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -196,7 +196,7 @@ class AboutPage extends StatelessWidget {
 
                   const SizedBox(height: 16),
 
-                  // ── Kontak ───────────────────────────────────
+                  // Kontak
                   _sectionCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -214,7 +214,7 @@ class AboutPage extends StatelessWidget {
 
                   const SizedBox(height: 24),
 
-                  // ── Footer ───────────────────────────────────
+                  // Footer
                   Center(
                     child: Column(children: [
                       Text('© 2024 Bersih.In. Hak cipta dilindungi.',
@@ -236,7 +236,7 @@ class AboutPage extends StatelessWidget {
     );
   }
 
-  // ── Helper widgets ───────────────────────────────────────────
+  // Helper widgets
 
   Widget _sectionCard({required Widget child}) {
     return Container(

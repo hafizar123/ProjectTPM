@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/ai_service.dart';
 
@@ -102,7 +102,16 @@ class _AiChatPageState extends State<AiChatPage> with TickerProviderStateMixin {
       backgroundColor: _bg,
       appBar: _buildAppBar(),
       body: Column(children: [
-        // ── Area pesan ──────────────────────────────────────
+
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
         Expanded(
           child: ListView.builder(
             controller: _scrollController,
@@ -116,10 +125,26 @@ class _AiChatPageState extends State<AiChatPage> with TickerProviderStateMixin {
           ),
         ),
 
-        // ── Saran pertanyaan (hanya saat belum ada percakapan panjang) ──
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
         if (messages.length <= 2 && !_isTyping) _buildQuickSuggestions(),
 
-        // ── Input ───────────────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
         _buildInputBar(),
       ]),
     );

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/auth_service.dart';
@@ -101,8 +101,73 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       ? _allOrders
       : _allOrders.where((o) => o['status'] == _filterStatus).toList();
 
-  // ── Hitung stat per status ───────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
   int _countStatus(String s) => _allOrders.where((o) => o['status'] == s).length;
+
+  /// Cek apakah admin masih bisa konfirmasi pembayaran.
+  /// Batasan 1: maks 1 jam sejak created_at
+  /// Batasan 2: tidak boleh melewati jam jadwal layanan
+  bool _canConfirmPayment(dynamic order) {
+
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
+    final createdAtStr = order['created_at']?.toString() ?? '';
+    if (createdAtStr.isNotEmpty) {
+      try {
+        final createdAt = DateTime.parse(createdAtStr).toLocal();
+        if (DateTime.now().isAfter(createdAt.add(const Duration(hours: 1)))) {
+          return false;
+        }
+      } catch (_) {}
+    }
+
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
+    final dateStr = order['schedule_date']?.toString() ?? '';
+    final timeStr = order['schedule_time']?.toString() ?? '';
+    if (dateStr.isNotEmpty && timeStr.isNotEmpty) {
+      try {
+        const bulan = {
+          'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'Mei': 5, 'Jun': 6,
+          'Jul': 7, 'Ags': 8, 'Sep': 9, 'Okt': 10, 'Nov': 11, 'Des': 12,
+        };
+        final parts = dateStr.trim().split(' ');
+        if (parts.length >= 3) {
+          final day   = int.tryParse(parts[0]) ?? 1;
+          final month = bulan[parts[1]] ?? 1;
+          final year  = int.tryParse(parts[2]) ?? 2026;
+          final tParts = timeStr.split(':');
+          final hour   = int.tryParse(tParts[0]) ?? 8;
+          final minute = int.tryParse(tParts.length > 1 ? tParts[1].split(' ')[0] : '0') ?? 0;
+          final schedDt = DateTime(year, month, day, hour, minute);
+          if (DateTime.now().isAfter(schedDt)) return false;
+        }
+      } catch (_) {}
+    }
+    return true;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -122,7 +187,15 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     );
   }
 
-  // ── HEADER ───────────────────────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
   Widget _buildHeader() {
     final revenueDisplay = CurrencyService.formatFromIdr(_totalRevenue, _revenueCurrency);
     final isIntl = _revenueCurrency != 'IDR';
@@ -310,7 +383,15 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     );
   }
 
-  // ── STAT CARDS ───────────────────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
   Widget _buildStatCards() {
     return SliverToBoxAdapter(
       child: Padding(
@@ -349,7 +430,15 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     );
   }
 
-  // ── FILTER BAR ───────────────────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
   Widget _buildFilterBar() {
     return SliverToBoxAdapter(
       child: Padding(
@@ -398,7 +487,15 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     );
   }
 
-  // ── ORDER LIST ───────────────────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
   /// Tampilkan total tagihan dalam mata uang yang dipilih user saat order.
   /// Jika ada data currency & total_converted dari DB → pakai itu.
   /// Fallback ke IDR jika tidak ada.
@@ -561,32 +658,60 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             ]),
           ]),
 
-          // Tombol konfirmasi pembayaran (admin saja)
+          // Tombol konfirmasi pembayaran (admin saja) — dengan batasan waktu
           if (showConfirmBtn) ...[
             const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity, height: 46,
-              child: ElevatedButton(
-                onPressed: () => _updateStatus(order['id'], status),
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  elevation: 0,
-                ),
-                child: Ink(
+            Builder(builder: (ctx) {
+              final canConfirm = _canConfirmPayment(order);
+              if (!canConfirm) {
+                // Sudah melewati batas — auto-cancel
+                WidgetsBinding.instance.addPostFrameCallback((_) async {
+                  await _authService.updateOrderStatus(order['id'], 'cancelled');
+                  if (mounted) _fetchDashboardData();
+                });
+                return Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(colors: [color, color.withOpacity(0.7)]),
+                    color: Colors.red.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colors.red.withOpacity(0.3)),
                   ),
-                  child: Container(
-                    alignment: Alignment.center,
-                    child: Text('KONFIRMASI BAYAR',
-                        style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white,
-                            fontSize: 13, letterSpacing: 0.8)),
+                  child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    Icon(Icons.cancel_rounded, color: Colors.red.shade400, size: 16),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Batas konfirmasi terlampaui — auto cancel',
+                      style: GoogleFonts.outfit(
+                          color: Colors.red.shade400, fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                  ]),
+                );
+              }
+              return SizedBox(
+                width: double.infinity, height: 46,
+                child: ElevatedButton(
+                  onPressed: () => _updateStatus(order['id'], status),
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    elevation: 0,
+                  ),
+                  child: Ink(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(colors: [color, color.withOpacity(0.7)]),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Container(
+                      alignment: Alignment.center,
+                      child: Text('KONFIRMASI BAYAR',
+                          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white,
+                              fontSize: 13, letterSpacing: 0.8)),
+                    ),
                   ),
                 ),
-              ),
-            ),
+              );
+            }),
           ],
         ]),
       ),

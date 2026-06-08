@@ -3,9 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'payment_page.dart';
 
-// ============================================================
 // DATA KATALOG SEMUA LAYANAN
-// ============================================================
+
 class LayananCatalog {
   static const Map<String, Map<String, dynamic>> data = {
     'Pemanas Air': {
@@ -99,9 +98,8 @@ class LayananCatalog {
   };
 }
 
-// ============================================================
 // HALAMAN ORDER DINAMIS - SEMUA LAYANAN
-// ============================================================
+
 class OrderLayananPage extends StatefulWidget {
   final String namaLayanan;
   final String? address;
@@ -331,7 +329,8 @@ class _OrderLayananPageState extends State<OrderLayananPage> {
                       final isToday = tempDate.day == now.day &&
                           tempDate.month == now.month &&
                           tempDate.year == now.year;
-                      final isPast = isToday && slotH <= now.hour;
+                      // Blokir slot < 1 jam dari sekarang (hanya hari ini)
+                      final isPast = isToday && slotH <= (now.hour + 1);
                       final isSel = tempTime == time && !isPast;
                       return GestureDetector(
                         onTap: isPast
@@ -447,7 +446,16 @@ class _OrderLayananPageState extends State<OrderLayananPage> {
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          // -- HEADER --------------------------------------
+
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
           SliverAppBar(
             expandedHeight: 230.0,
             pinned: true,
@@ -538,7 +546,15 @@ class _OrderLayananPageState extends State<OrderLayananPage> {
             ),
           ),
 
-          // -- BODY ----------------------------------------
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(22, 28, 22, 0),
@@ -651,7 +667,15 @@ class _OrderLayananPageState extends State<OrderLayananPage> {
         ],
       ),
 
-      // -- BOTTOM BAR --------------------------------------
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
       bottomSheet: Container(
         padding: const EdgeInsets.fromLTRB(22, 16, 22, 0),
         decoration: BoxDecoration(

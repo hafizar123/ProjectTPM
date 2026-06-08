@@ -1,3 +1,8 @@
+# Environment & secrets — JANGAN di-commit ke Git!
+.env
+*.env
+lib/config/secrets.dart
+
 # Miscellaneous
 *.class
 *.log

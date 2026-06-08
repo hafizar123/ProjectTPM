@@ -86,7 +86,6 @@ class NotificationService {
       enableVibration: true,
       playSound: true,
       ongoing: ongoing,
-      // Tampilkan di lock screen
       visibility: NotificationVisibility.public,
     );
   }
@@ -118,8 +117,6 @@ class NotificationService {
 
   Future<void> cancel(int id) => _plugin.cancel(id);
   Future<void> cancelAll() => _plugin.cancelAll();
-
-  // ── PUBLIC API ───────────────────────────────────────────────
 
   Future<void> schedulePaymentReminder({
     required int orderId, required String serviceName, required int createdAtMs,
@@ -283,8 +280,7 @@ class NotificationService {
     } catch (_) { return null; }
   }
 
-  // ── NOTIFIKASI UNTUK GUEST (belum login) ─────────────────────
-  // Jadwal: pagi 08:00, siang 12:00, sore 17:00
+  // Notifikasi untuk guest, dijadwal sekali per hari (pagi, siang, sore)
   static const _guestNotifKey = 'guest_notif_scheduled';
 
   Future<void> scheduleGuestNotifications() async {

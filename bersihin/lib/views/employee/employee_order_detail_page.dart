@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -209,7 +209,15 @@ class _EmployeeOrderDetailPageState extends State<EmployeeOrderDetailPage> {
     ));
   }
 
-  // ── Helpers ───────────────────────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
   Color _statusColor(String s) {
     switch (s) {
       case 'menunggu_konfirmasi':
@@ -270,6 +278,53 @@ class _EmployeeOrderDetailPageState extends State<EmployeeOrderDetailPage> {
     }
   }
 
+  /// Karyawan hanya bisa selesaikan order setelah melewati jam layanan.
+  bool _canFinishWork() {
+    try {
+      final dateStr = _order['schedule_date'] as String? ?? '';
+      final timeStr = _order['schedule_time'] as String? ?? '';
+      if (dateStr.isEmpty || timeStr.isEmpty) return true;
+
+      // Format schedule_date: "8 Jun 2026" atau "2026-06-08"
+      DateTime? schedDt;
+
+      // Coba format "D MMM YYYY"
+      const bulan = {
+        'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'Mei': 5, 'Jun': 6,
+        'Jul': 7, 'Ags': 8, 'Sep': 9, 'Okt': 10, 'Nov': 11, 'Des': 12,
+      };
+      final spaceParts = dateStr.trim().split(' ');
+      if (spaceParts.length >= 3) {
+        final day   = int.tryParse(spaceParts[0]) ?? 1;
+        final month = bulan[spaceParts[1]] ?? 1;
+        final year  = int.tryParse(spaceParts[2]) ?? 2026;
+        final tParts = timeStr.split(':');
+        final hour   = int.tryParse(tParts[0]) ?? 8;
+        final minute = int.tryParse(tParts.length > 1 ? tParts[1].split(' ')[0] : '0') ?? 0;
+        schedDt = DateTime(year, month, day, hour, minute);
+      }
+      // Fallback format "YYYY-MM-DD"
+      if (schedDt == null) {
+        final dashParts = dateStr.split('-');
+        if (dashParts.length >= 3) {
+          final year  = int.tryParse(dashParts[0]) ?? 2000;
+          final month = int.tryParse(dashParts[1]) ?? 1;
+          final day   = int.tryParse(dashParts[2]) ?? 1;
+          final tParts = timeStr.split(':');
+          final hour   = int.tryParse(tParts[0]) ?? 0;
+          final minute = int.tryParse(tParts.length > 1 ? tParts[1] : '0') ?? 0;
+          schedDt = DateTime(year, month, day, hour, minute);
+        }
+      }
+
+      if (schedDt == null) return true;
+      return DateTime.now().isAfter(schedDt) ||
+          DateTime.now().isAtSameMomentAs(schedDt);
+    } catch (_) {
+      return true;
+    }
+  }
+
   bool get _isOrderDone =>
       (_order['status'] as String? ?? '') == 'selesai';
   bool get _isOrderCancelled =>
@@ -318,34 +373,83 @@ class _EmployeeOrderDetailPageState extends State<EmployeeOrderDetailPage> {
             padding: const EdgeInsets.all(16),
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              // ── Header card ──────────────────────────────────
+
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
               _buildHeaderCard(statusColor, status),
               const SizedBox(height: 16),
 
-              // ── Lokasi ───────────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
               _buildLocationSection(),
               const SizedBox(height: 16),
 
-              // ── Tombol aksi ──────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
               if (!_isOrderDone && !_isOrderCancelled) ...[
                 _buildActionButtons(),
                 const SizedBox(height: 16),
               ],
 
-              // ── Chat ─────────────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
               _buildChatSection(),
               const SizedBox(height: 20),
             ]),
           ),
         ),
 
-        // ── Input chat ────────────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
         if (!_isOrderDone && !_isOrderCancelled) _buildChatInput(),
       ]),
     );
   }
 
-  // ── Header card ───────────────────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
   Widget _buildHeaderCard(Color statusColor, String status) {
     return Container(
       padding: const EdgeInsets.all(18),
@@ -392,7 +496,15 @@ class _EmployeeOrderDetailPageState extends State<EmployeeOrderDetailPage> {
     );
   }
 
-  // ── Lokasi section dengan maps ────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
   Widget _buildLocationSection() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -491,7 +603,15 @@ class _EmployeeOrderDetailPageState extends State<EmployeeOrderDetailPage> {
     );
   }
 
-  // ── Tombol aksi ───────────────────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
   Widget _buildActionButtons() {
     final status = _order['status'] as String? ?? '';
     final canStart = _canStartWork();
@@ -537,38 +657,61 @@ class _EmployeeOrderDetailPageState extends State<EmployeeOrderDetailPage> {
         ],
       ],
 
-      // Tombol Selesaikan Order
+      // Tombol Selesaikan Order — hanya aktif setelah jam layanan
       if (status == 'pengerjaan') ...[
-        SizedBox(
-          width: double.infinity,
-          height: 50,
-          child: ElevatedButton.icon(
-            onPressed:
-                _isUpdating ? null : () => _updateStatus('selesai'),
-            icon: _isUpdating
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                        color: Colors.white, strokeWidth: 2))
-                : const Icon(Icons.check_circle_rounded, size: 20),
-            label: Text('Selesaikan Order',
-                style: GoogleFonts.outfit(
-                    fontWeight: FontWeight.bold, fontSize: 14)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _accentDim,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14)),
-              elevation: 0,
+        Builder(builder: (_) {
+          final canFinish = _canFinishWork();
+          return Column(children: [
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton.icon(
+                onPressed: (canFinish && !_isUpdating)
+                    ? () => _updateStatus('selesai')
+                    : null,
+                icon: _isUpdating
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : Icon(
+                        canFinish ? Icons.check_circle_rounded : Icons.lock_clock_rounded,
+                        size: 20),
+                label: Text(
+                  canFinish ? 'Selesaikan Order' : 'Belum Bisa Diselesaikan',
+                  style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: canFinish ? _accentDim : Colors.grey.shade800,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  elevation: 0,
+                ),
+              ),
             ),
-          ),
-        ),
+            if (!canFinish) ...[
+              const SizedBox(height: 6),
+              Text(
+                'Bisa diselesaikan setelah jam layanan: ${_order['schedule_time'] ?? ''}',
+                style: GoogleFonts.outfit(color: Colors.white38, fontSize: 11),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ]);
+        }),
       ],
     ]);
   }
 
-  // ── Chat section ──────────────────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
   Widget _buildChatSection() {
     return Container(
       decoration: BoxDecoration(
@@ -687,7 +830,15 @@ class _EmployeeOrderDetailPageState extends State<EmployeeOrderDetailPage> {
     );
   }
 
-  // ── Chat input ────────────────────────────────────────────────
+        param($m)
+        $indent = ($m.Value -replace '//.*', '').Length
+        $text = $m.Groups[1].Value.Trim()
+        # Hitung indentasi dari baris aslinya
+        $line = $m.Value
+        $leadingSpaces = $line.Length - $line.TrimStart().Length
+        $spaces = ' ' * $leadingSpaces
+        "$spaces// $text"
+    
   Widget _buildChatInput() {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),

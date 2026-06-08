@@ -22,6 +22,7 @@ class _ActivityPageState extends State<ActivityPage> {
 
   List<dynamic> _ongoingOrders = [];
   List<dynamic> _historyOrders = [];
+  List<dynamic> _cancelledOrders = [];
   bool _isLoading = true;
 
   @override
@@ -48,7 +49,10 @@ class _ActivityPageState extends State<ActivityPage> {
               .where((o) => o['status'] != 'selesai' && o['status'] != 'cancelled')
               .toList();
           _historyOrders = allOrders
-              .where((o) => o['status'] == 'selesai' || o['status'] == 'cancelled')
+              .where((o) => o['status'] == 'selesai')
+              .toList();
+          _cancelledOrders = allOrders
+              .where((o) => o['status'] == 'cancelled')
               .toList();
           _isLoading = false;
         });
@@ -94,9 +98,8 @@ class _ActivityPageState extends State<ActivityPage> {
   }
 
   bool _isChatableStatus(String status) {
-    return status == 'menunggu_konfirmasi' ||
-        status == 'pengerjaan' ||
-        status == 'selesai';
+    // Chat hanya bisa setelah admin konfirmasi pembayaran (pengerjaan atau selesai)
+    return status == 'pengerjaan' || status == 'selesai';
   }
 
   void _openChat(BuildContext context, Map<String, dynamic> order) {
@@ -116,7 +119,7 @@ class _ActivityPageState extends State<ActivityPage> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         extendBody: true,
         backgroundColor: Colors.white,
@@ -145,14 +148,17 @@ class _ActivityPageState extends State<ActivityPage> {
                 indicatorWeight: 4,
                 labelColor: toscaDark,
                 labelStyle:
-                    GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16),
+                    GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13),
                 unselectedLabelColor: Colors.grey.shade400,
                 unselectedLabelStyle:
-                    GoogleFonts.outfit(fontWeight: FontWeight.w500, fontSize: 16),
+                    GoogleFonts.outfit(fontWeight: FontWeight.w500, fontSize: 13),
                 dividerColor: Colors.transparent,
-                tabs: const [
-                  Tab(text: 'Sedang Berjalan'),
-                  Tab(text: 'Riwayat Selesai'),
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                tabs: [
+                  Tab(text: 'Berjalan (${_ongoingOrders.length})'),
+                  Tab(text: 'Selesai (${_historyOrders.length})'),
+                  Tab(text: 'Dibatalkan (${_cancelledOrders.length})'),
                 ],
               ),
             ),
@@ -169,8 +175,9 @@ class _ActivityPageState extends State<ActivityPage> {
           child: TabBarView(
             physics: const BouncingScrollPhysics(),
             children: [
-              _buildActivityList(isOngoing: true),
-              _buildActivityList(isOngoing: false),
+              _buildActivityList(orders: _ongoingOrders, emptyLabel: 'Tidak ada pesanan aktif'),
+              _buildActivityList(orders: _historyOrders, emptyLabel: 'Belum ada riwayat selesai'),
+              _buildCancelledList(),
             ],
           ),
         ),
@@ -181,25 +188,19 @@ class _ActivityPageState extends State<ActivityPage> {
     );
   }
 
-  Widget _buildActivityList({required bool isOngoing}) {
+  Widget _buildActivityList({required List<dynamic> orders, required String emptyLabel}) {
     if (_isLoading) {
       return Center(child: CircularProgressIndicator(color: toscaMedium));
     }
 
-    final List<dynamic> targetData =
-        isOngoing ? _ongoingOrders : _historyOrders;
-
-    if (targetData.isEmpty) {
+    if (orders.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.inbox_rounded,
-                size: 80, color: toscaMedium.withOpacity(0.3)),
+            Icon(Icons.inbox_rounded, size: 80, color: toscaMedium.withOpacity(0.3)),
             const SizedBox(height: 15),
-            Text('Belum ada aktivitas',
-                style: GoogleFonts.outfit(
-                    color: Colors.grey.shade600, fontSize: 16)),
+            Text(emptyLabel, style: GoogleFonts.outfit(color: Colors.grey.shade600, fontSize: 16)),
           ],
         ),
       );
@@ -207,225 +208,295 @@ class _ActivityPageState extends State<ActivityPage> {
 
     return ListView.builder(
       padding: const EdgeInsets.only(top: 25, bottom: 120, left: 20, right: 20),
-      itemCount: targetData.length,
+      itemCount: orders.length,
       physics: const BouncingScrollPhysics(),
-      itemBuilder: (context, index) {
-        final data = targetData[index];
-        final String status = data['status'] as String? ?? '';
-        final bool hasEmployee = data['employee_id'] != null;
-        final bool showChat = hasEmployee && _isChatableStatus(status);
+      itemBuilder: (context, index) => _buildOrderCard(orders[index]),
+    );
+  }
 
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 20),
-          child: InkWell(
+  // Tab Dibatalkan — tampilan khusus lebih sederhana
+  Widget _buildCancelledList() {
+    if (_isLoading) {
+      return Center(child: CircularProgressIndicator(color: toscaMedium));
+    }
+
+    if (_cancelledOrders.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.cancel_outlined, size: 80, color: Colors.grey.shade300),
+            const SizedBox(height: 15),
+            Text('Tidak ada pesanan dibatalkan',
+                style: GoogleFonts.outfit(color: Colors.grey.shade500, fontSize: 16)),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.only(top: 25, bottom: 120, left: 20, right: 20),
+      itemCount: _cancelledOrders.length,
+      physics: const BouncingScrollPhysics(),
+      itemBuilder: (context, index) => _buildOrderCard(_cancelledOrders[index]),
+    );
+  }
+
+  Widget _buildOrderCard(dynamic data) {
+    final String status   = data['status'] as String? ?? '';
+    final bool hasEmployee = data['employee_id'] != null;
+    // Chat hanya muncul saat status pengerjaan/selesai (sudah dikonfirmasi admin)
+    final bool showChat   = hasEmployee && _isChatableStatus(status);
+    // Info karyawan hanya muncul setelah admin konfirmasi (bukan menunggu_konfirmasi)
+    final bool showEmployee = hasEmployee &&
+        (status == 'pengerjaan' || status == 'selesai');
+    final bool isCancelled = status == 'cancelled';
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(24),
+        onTap: () async {
+          final shouldRefresh = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => WaitingPaymentPage(
+                orderId: data['id'],
+                totalAmount: data['total_amount'],
+                paymentMethod: data['payment_method'],
+                serviceName: data['service_name'],
+                vaNumber: data['va_number'],
+                qrisUrl: data['qris_url'],
+                initialStatus: data['status'],
+                address: data['address'],
+                transactionTime: data['waktu_transaksi'],
+                houseType: data['house_type'],
+                patokan: data['patokan'],
+              ),
+            ),
+          );
+          if (shouldRefresh == true || shouldRefresh == null) {
+            _fetchOrders();
+          }
+        },
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
             borderRadius: BorderRadius.circular(24),
-            onTap: () async {
-              final shouldRefresh = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => WaitingPaymentPage(
-                    orderId: data['id'],
-                    totalAmount: data['total_amount'],
-                    paymentMethod: data['payment_method'],
-                    serviceName: data['service_name'],
-                    vaNumber: data['va_number'],
-                    qrisUrl: data['qris_url'],
-                    initialStatus: data['status'],
-                    address: data['address'],
-                    transactionTime: data['waktu_transaksi'],
-                    houseType: data['house_type'],
-                    patokan: data['patokan'],
+            boxShadow: [
+              BoxShadow(
+                color: isCancelled
+                    ? Colors.grey.withOpacity(0.08)
+                    : toscaDark.withOpacity(0.06),
+                blurRadius: 25,
+                offset: const Offset(0, 10),
+              )
+            ],
+            border: Border.all(
+              color: isCancelled
+                  ? Colors.grey.shade200
+                  : toscaLight.withOpacity(0.15),
+              width: 1.5,
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(22),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Icon layanan
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isCancelled
+                        ? Colors.grey.shade100
+                        : null,
+                    gradient: isCancelled
+                        ? null
+                        : LinearGradient(
+                            colors: [
+                              toscaMedium.withOpacity(0.2),
+                              toscaLight.withOpacity(0.1),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isCancelled
+                          ? Colors.grey.shade300
+                          : toscaLight.withOpacity(0.3),
+                    ),
+                  ),
+                  child: Icon(
+                    _getIconForService(data['service_name'] ?? ''),
+                    color: isCancelled ? Colors.grey.shade400 : toscaDark,
+                    size: 32,
                   ),
                 ),
-              );
-              if (shouldRefresh == true || shouldRefresh == null) {
-                _fetchOrders();
-              }
-            },
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: toscaDark.withOpacity(0.06),
-                    blurRadius: 25,
-                    offset: const Offset(0, 10),
-                  )
-                ],
-                border:
-                    Border.all(color: toscaLight.withOpacity(0.15), width: 1.5),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(22),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Icon layanan
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            toscaMedium.withOpacity(0.2),
-                            toscaLight.withOpacity(0.1)
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                        border:
-                            Border.all(color: toscaLight.withOpacity(0.3)),
-                      ),
-                      child: Icon(
-                          _getIconForService(data['service_name']),
-                          color: toscaDark,
-                          size: 32),
-                    ),
-                    const SizedBox(width: 20),
+                const SizedBox(width: 20),
 
-                    // Info order
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Nama layanan
-                          Text(
-                            data['service_name'],
+                // Info order
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Nama layanan
+                      Text(
+                        data['service_name'] ?? '',
+                        style: GoogleFonts.outfit(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          color: isCancelled ? Colors.grey.shade500 : toscaDark,
+                          letterSpacing: -0.3,
+                          decoration: isCancelled ? TextDecoration.none : null,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 6),
+
+                      // Jadwal
+                      Row(children: [
+                        Icon(Icons.calendar_today_rounded,
+                            size: 14, color: Colors.grey.shade500),
+                        const SizedBox(width: 5),
+                        Expanded(
+                          child: Text(
+                            '${data['schedule_date']}   ${data['schedule_time']}',
                             style: GoogleFonts.outfit(
-                                fontSize: 17,
-                                fontWeight: FontWeight.bold,
-                                color: toscaDark,
-                                letterSpacing: -0.3),
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                              fontWeight: FontWeight.w500,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 6),
+                        ),
+                      ]),
+                      const SizedBox(height: 14),
 
-                          // Jadwal
-                          Row(children: [
-                            Icon(Icons.calendar_today_rounded,
-                                size: 14, color: Colors.grey.shade500),
-                            const SizedBox(width: 5),
-                            Expanded(
-                              child: Text(
-                                '${data['schedule_date']}   ${data['schedule_time']}',
-                                style: GoogleFonts.outfit(
-                                    fontSize: 12,
-                                    color: Colors.grey.shade600,
-                                    fontWeight: FontWeight.w500),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                      // Status badge + tombol Chat
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        children: [
+                          // Status badge
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: _statusColor(status).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                  color: _statusColor(status).withOpacity(0.35)),
                             ),
-                          ]),
-                          const SizedBox(height: 14),
-
-                          // Status badge + tombol Chat sejajar
-                          Row(children: [
-                            // Status badge
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: _statusColor(status).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                    color:
-                                        _statusColor(status).withOpacity(0.35)),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 6,
-                                    height: 6,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: _statusColor(status),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    _formatStatusText(status),
-                                    style: GoogleFonts.outfit(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: _statusColor(status),
-                                      letterSpacing: 0.2,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            // Tombol Chat — hanya muncul jika ada karyawan & status bisa chat
-                            if (showChat) ...[
-                              const SizedBox(width: 8),
-                              GestureDetector(
-                                onTap: () => _openChat(
-                                    context, Map<String, dynamic>.from(data)),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 6),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 6, height: 6,
                                   decoration: BoxDecoration(
-                                    color: toscaMedium.withOpacity(0.12),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                        color: toscaMedium.withOpacity(0.3)),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.chat_rounded,
-                                          size: 13, color: toscaMedium),
-                                      const SizedBox(width: 5),
-                                      Text(
-                                        'Chat',
-                                        style: GoogleFonts.outfit(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold,
-                                          color: toscaMedium,
-                                        ),
-                                      ),
-                                    ],
+                                    shape: BoxShape.circle,
+                                    color: _statusColor(status),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ]),
-
-                          // Info karyawan
-                          if (hasEmployee) ...[
-                            const SizedBox(height: 10),
-                            Row(children: [
-                              Icon(Icons.engineering_rounded,
-                                  size: 15, color: toscaMedium),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Text(
-                                  'Ditangani oleh: ${data['employee_name'] ?? 'Karyawan'}',
+                                const SizedBox(width: 8),
+                                Text(
+                                  _formatStatusText(status),
                                   style: GoogleFonts.outfit(
-                                    fontSize: 12,
-                                    color: toscaDark,
-                                    fontWeight: FontWeight.w600,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: _statusColor(status),
+                                    letterSpacing: 0.2,
                                   ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Tombol Chat — hanya setelah admin konfirmasi
+                          if (showChat)
+                            GestureDetector(
+                              onTap: () => _openChat(
+                                  context, Map<String, dynamic>.from(data)),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: toscaMedium.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                      color: toscaMedium.withOpacity(0.3)),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.chat_rounded,
+                                        size: 13, color: toscaMedium),
+                                    const SizedBox(width: 5),
+                                    Text(
+                                      'Chat',
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: toscaMedium,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ]),
-                          ],
+                            ),
                         ],
                       ),
-                    ),
-                  ],
+
+                      // Info karyawan — hanya setelah konfirmasi admin
+                      if (showEmployee) ...[
+                        const SizedBox(height: 10),
+                        Row(children: [
+                          Icon(Icons.engineering_rounded,
+                              size: 15, color: toscaMedium),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'Ditangani oleh: ${data['employee_name'] ?? 'Karyawan'}',
+                              style: GoogleFonts.outfit(
+                                fontSize: 12,
+                                color: toscaDark,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ]),
+                      ],
+
+                      // Keterangan dibatalkan
+                      if (isCancelled) ...[
+                        const SizedBox(height: 8),
+                        Row(children: [
+                          Icon(Icons.info_outline_rounded,
+                              size: 13, color: Colors.grey.shade400),
+                          const SizedBox(width: 5),
+                          Text(
+                            'Pesanan dibatalkan',
+                            style: GoogleFonts.outfit(
+                              fontSize: 11,
+                              color: Colors.grey.shade400,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ]),
+                      ],
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }
